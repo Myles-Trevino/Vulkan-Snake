@@ -1,20 +1,22 @@
 #pragma once
 #include <vector>
 #include <functional>
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <Vulkan/vulkan.h>
 #include "Window.hpp"
 
 template <typename T> class Vulkan_Deleter
 {
 public:
-	Vulkan_Deleter() : Vulkan_Deleter([](T, VkAllocationCallbacks*) {}) {}
+	Vulkan_Deleter() : Vulkan_Deleter([](T, VkAllocationCallbacks*){}){}
 	Vulkan_Deleter(std::function<void(T, VkAllocationCallbacks*)> deletef)
-	{ this->deleter = [=](T obj) { deletef(obj, nullptr); }; }
+	{ this->deleter = [=](T obj){ deletef(obj, nullptr); }; }
 	Vulkan_Deleter(const Vulkan_Deleter<VkInstance>& instance,
 		std::function<void(VkInstance, T, VkAllocationCallbacks*)> deletef)
-	{ this->deleter = [&instance, deletef](T obj) { deletef(instance, obj, nullptr); }; }
+	{ this->deleter = [&instance, deletef](T obj){ deletef(instance, obj, nullptr); }; }
 	Vulkan_Deleter(const Vulkan_Deleter<VkDevice>& device,
 		std::function<void(VkDevice, T, VkAllocationCallbacks*)> deletef)
-	{ this->deleter = [&device, deletef](T obj) { deletef(device, obj, nullptr); }; }
+	{ this->deleter = [&device, deletef](T obj){ deletef(device, obj, nullptr); }; }
 	~Vulkan_Deleter(){ cleanup(); }
 	T* operator &(){ cleanup(); return &object; }
 	operator T() const { return object; }

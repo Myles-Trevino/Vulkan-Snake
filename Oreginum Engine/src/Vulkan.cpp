@@ -70,38 +70,6 @@ void Vulkan::render()
 	else if(result != VK_SUCCESS) error("Could not present Vulkan swap chain image.");
 }
 
-void Vulkan::check_extension_support(const std::vector<const char *>& extensions)
-{
-	uint32_t extension_count;
-	vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
-	std::vector<VkExtensionProperties> supported_extensions{extension_count};
-	vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, supported_extensions.data());
-
-	for(const auto& e : extensions)
-	{
-		bool found{};
-		for(int i{}; i < supported_extensions.size(); ++i)
-			if(strcmp(e, supported_extensions[i].extensionName) == 0) found = true;
-		if(!found) error("Your GPU does not support the \""+std::string{e}+"\" extension.");
-	}
-}
-
-void Vulkan::check_layer_support(const std::vector<const char *>& layers)
-{
-	uint32_t layer_count;
-	vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
-	std::vector<VkLayerProperties> supported_layers{layer_count};
-	vkEnumerateInstanceLayerProperties(&layer_count, supported_layers.data());
-
-	for(const auto& l : layers)
-	{
-		bool found{};
-		for(int i{}; i < supported_layers.size(); ++i)
-			if(strcmp(l, supported_layers[i].layerName) == 0) found = true;
-		if(!found) error("Your computer does not support the \""+std::string{l}+"\" layer.");
-	}
-}
-
 void Vulkan::create_instance(const Window& window, const std::string& program_title,
 	const glm::ivec3& program_version, const std::string& engine_title,
 	const glm::ivec3& engine_version, const glm::ivec3& vulkan_version)
@@ -117,16 +85,12 @@ void Vulkan::create_instance(const Window& window, const std::string& program_ti
 	application_information.apiVersion =
 		VK_MAKE_VERSION(vulkan_version.x, vulkan_version.y, vulkan_version.z);
 
-	uint32_t glfw_extension_count;
-	const char **glfw_extensions{glfwGetRequiredInstanceExtensions(&glfw_extension_count)};
-	std::vector<const char *> extensions;
-	for(uint32_t i{}; i < glfw_extension_count; ++i) extensions.push_back(glfw_extensions[i]);
+	std::vector<const char *> extensions{VK_KHR_SURFACE_EXTENSION_NAME,
+		VK_KHR_WIN32_SURFACE_EXTENSION_NAME};
 	if(DEBUG) extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-	check_extension_support(extensions);
 
 	std::vector<const char *> layers;
 	if(DEBUG) layers.push_back("VK_LAYER_LUNARG_standard_validation");
-	check_layer_support(layers);
 
 	VkInstanceCreateInfo instance_information{};
 	instance_information.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -174,13 +138,20 @@ void Vulkan::destroy_debug_callback(VkInstance instance, VkDebugReportCallbackEX
 
 void Vulkan::create_surface()
 {
-	if(glfwCreateWindowSurface(instance, WINDOW.get(), nullptr, &surface) != VK_SUCCESS)
-		error("Could not create Vulkan window surface.");
+	VkWin32SurfaceCreateInfoKHR surface_information{};
+	surface_information.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+	surface_information.pNext = NULL;
+	surface_information.flags = 0;
+	surface_information.hinstance = WINDOW.get_instance();
+	surface_information.hwnd = WINDOW.get();
+
+	if(vkCreateWin32SurfaceKHR(instance, &surface_information, nullptr, &surface) != VK_SUCCESS)
+		error("Could not create Vulkan surface.");
 }
 
 void Vulkan::get_gpu_information(const VkPhysicalDevice& gpu)
 {
-	uint32_t queue_family_count;
+	uint32_t queue_family_count{};
 	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queue_family_count, nullptr);
 	std::vector<VkQueueFamilyProperties> queue_families{queue_family_count};
 	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queue_family_count, queue_families.data());
@@ -204,13 +175,13 @@ void Vulkan::get_swapchain_information(const VkPhysicalDevice& gpu)
 
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu, surface, &swapchain_capabilities);
 
-	uint32_t format_count;
+	uint32_t format_count{};
 	vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &format_count, nullptr);
 	swapchain_formats.resize(format_count);
 	vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface,
 		&format_count, swapchain_formats.data());
 
-	uint32_t present_mode_count;
+	uint32_t present_mode_count{};
 	vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, surface, &present_mode_count, nullptr);
 	swapchain_present_modes.resize(present_mode_count);
 	vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, surface,
@@ -219,7 +190,7 @@ void Vulkan::get_swapchain_information(const VkPhysicalDevice& gpu)
 
 void Vulkan::select_gpu()
 {
-	uint32_t gpu_count;
+	uint32_t gpu_count{};
 	vkEnumeratePhysicalDevices(instance, &gpu_count, nullptr);
 	std::vector<VkPhysicalDevice> gpus{gpu_count};
 	vkEnumeratePhysicalDevices(instance, &gpu_count, gpus.data());
@@ -229,7 +200,7 @@ void Vulkan::select_gpu()
 	{
 		int rating{};
 
-		uint32_t extension_count;
+		uint32_t extension_count{};
 		vkEnumerateDeviceExtensionProperties(g, nullptr, &extension_count, nullptr);
 		std::vector<VkExtensionProperties> supported_extensions{extension_count};
 		vkEnumerateDeviceExtensionProperties(g, nullptr,
