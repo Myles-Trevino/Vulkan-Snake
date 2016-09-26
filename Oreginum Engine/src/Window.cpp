@@ -54,4 +54,10 @@ void Window::update()
 	if(!GetMessage(&message, NULL, 0, 0)) exited = true;
 	TranslateMessage(&message);
 	DispatchMessage(&message);
+
+	RECT rect;
+	GetClientRect(window, &rect);
+	glm::ivec2 old_resolution{resolution};
+	resolution = {rect.right-rect.left, rect.bottom-rect.top};
+	resized = (old_resolution != resolution);
 }

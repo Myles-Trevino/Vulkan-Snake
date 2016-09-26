@@ -14,9 +14,9 @@ public:
 	HINSTANCE get_instance() const { return instance; }
 	HWND get() const { return window; }
 	std::string get_title() const { return TITLE; }
-	glm::ivec2 get_resolution() const { return resolution; }
-	bool was_resized() const { return false; }
-	bool has_resolution() const { return !(get_resolution().x && get_resolution().y); }
+	glm::ivec2 get_resolution() const { return resolution; };
+	bool was_resized() const { return resized; }
+	bool is_visible() const { return (resolution.x > 0 && resolution.y > 0); }
 	bool was_exited() const { return exited; }
 
 private:
@@ -31,5 +31,4 @@ private:
 
 	static LRESULT CALLBACK window_callback(HWND window, UINT message,
 		WPARAM message_information, LPARAM message_informaton_long);
-
 };

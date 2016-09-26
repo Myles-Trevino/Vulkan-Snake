@@ -8,8 +8,12 @@
 
 Vulkan::Vulkan(const Window& window, const std::string& program_title,
 	const glm::ivec3& program_version, const std::string& engine_title,
-	const glm::ivec3& engine_version, const glm::ivec3& vulkan_version, bool debug)
-	: WINDOW(window), DEBUG(debug)
+	const glm::ivec3& engine_version, const glm::ivec3& vulkan_version,
+	const std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions,
+	const std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions,
+	const std::vector<float>& vertices, bool debug)
+	: WINDOW(window), DEBUG(debug), vertex_binding_descriptions(vertex_binding_descriptions),
+	vertex_attribute_descriptions(vertex_attribute_descriptions), vertices(vertices)
 {
 	create_instance(window, program_title, program_version,
 		engine_title, engine_version, vulkan_version);
@@ -23,18 +27,18 @@ Vulkan::Vulkan(const Window& window, const std::string& program_title,
 	create_graphics_pipeline();
 	create_framebuffers();
 	create_command_pool();
+	create_vertex_buffer();
 	create_command_buffers();
 	create_semaphores();
 }
 
 void Vulkan::render()
 {
-	if(WINDOW.was_resized() && !WINDOW.has_resolution()) recreate_swapchain();
+	if(WINDOW.was_resized() && WINDOW.is_visible()) recreate_swapchain();
 
 	uint32_t image_index;
-	VkResult result{vkAcquireNextImageKHR(device, swapchain,
-		std::numeric_limits<uint64_t>::max(), image_available_semaphore, VK_NULL_HANDLE, 
-		&image_index)};
+	VkResult result{vkAcquireNextImageKHR(device, swapchain, std::numeric_limits<uint64_t>::max(),
+		image_available_semaphore, VK_NULL_HANDLE, &image_index)};
 
 	if(result == VK_ERROR_OUT_OF_DATE_KHR){ recreate_swapchain(); return; }
 	else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
@@ -129,7 +133,7 @@ void Vulkan::create_debug_callback()
 }
 
 void Vulkan::destroy_debug_callback(VkInstance instance, VkDebugReportCallbackEXT callback,
-	const VkAllocationCallbacks* allocator)
+	const VkAllocationCallbacks *allocator)
 {
 	auto fvkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)
 		vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
@@ -264,7 +268,7 @@ void Vulkan::create_device()
 	device_information.ppEnabledExtensionNames = gpu_extensions.data();
 
 	if(vkCreateDevice(gpu, &device_information, nullptr, &device) != VK_SUCCESS)
-		error("Could not create a Vulkan device.\nYour GPU does not support Vulkan sufficiently.");
+		error("Could not create a Vulkan device.");
 
 	vkGetDeviceQueue(device, graphics_queue_index, NULL, &graphics_queue);
 	vkGetDeviceQueue(device, present_queue_index, NULL, &present_queue);
@@ -300,8 +304,8 @@ void Vulkan::create_swapchain()
 	swapchain_information.clipped = VK_TRUE;
 	swapchain_information.oldSwapchain = swapchain;
 	if(vkCreateSwapchainKHR(device, &swapchain_information, nullptr, &new_swapchain) != VK_SUCCESS)
-		error("Could not create Vulkan swapchain.\nYour GPU does not support Vulkan sufficiently.");
-	*&swapchain = new_swapchain;
+		error("Could not create Vulkan swapchain.");
+	*swapchain.replace() = new_swapchain;
 
 	vkGetSwapchainImagesKHR(device, swapchain, &image_count, nullptr);
 	swapchain_images.resize(image_count);
@@ -421,10 +425,12 @@ void Vulkan::create_graphics_pipeline()
 
 	VkPipelineVertexInputStateCreateInfo vertex_input_information{};
 	vertex_input_information.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertex_input_information.vertexBindingDescriptionCount = 0;
-	vertex_input_information.pVertexBindingDescriptions = nullptr;
-	vertex_input_information.vertexAttributeDescriptionCount = 0;
-	vertex_input_information.pVertexAttributeDescriptions = nullptr;
+	vertex_input_information.vertexBindingDescriptionCount =
+		static_cast<uint32_t>(vertex_binding_descriptions.size());
+	vertex_input_information.pVertexBindingDescriptions = vertex_binding_descriptions.data();
+	vertex_input_information.vertexAttributeDescriptionCount =
+		static_cast<uint32_t>(vertex_attribute_descriptions.size());
+	vertex_input_information.pVertexAttributeDescriptions = vertex_attribute_descriptions.data();
 
 	VkPipelineInputAssemblyStateCreateInfo input_assembly_information{};
 	input_assembly_information.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -566,6 +572,43 @@ void Vulkan::create_command_pool()
 		!= VK_SUCCESS) error("Could not create Vulkan command pool.");
 }
 
+uint32_t Vulkan::find_memory(uint32_t type, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memory_properties;
+	vkGetPhysicalDeviceMemoryProperties(gpu, &memory_properties);
+	for(uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+		if((type & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags
+			& properties) == properties) return i;
+	error("Your GPU ran out of memory.");
+}
+
+void Vulkan::create_vertex_buffer()
+{
+	VkBufferCreateInfo vertex_buffer_information{};
+	vertex_buffer_information.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	vertex_buffer_information.size = sizeof(vertices[0])*vertices.size();
+	vertex_buffer_information.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	vertex_buffer_information.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	if(vkCreateBuffer(device, &vertex_buffer_information, nullptr, vertex_buffer.replace())
+		!= VK_SUCCESS) error("Could not create a Vulkan vertex buffer");
+
+	VkMemoryRequirements memory_requirements;
+	vkGetBufferMemoryRequirements(device, vertex_buffer, &memory_requirements);
+	VkMemoryAllocateInfo memory_allocation_information{};
+	memory_allocation_information.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	memory_allocation_information.allocationSize = memory_requirements.size;
+	memory_allocation_information.memoryTypeIndex = find_memory(memory_requirements.memoryTypeBits,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	if(vkAllocateMemory(device, &memory_allocation_information,
+		nullptr, vertex_buffer_memory.replace()) != VK_SUCCESS)
+		error("Could not allocate memory for the Vulkan vertex buffer.");
+	vkBindBufferMemory(device, vertex_buffer, vertex_buffer_memory, 0);
+	void *data;
+	vkMapMemory(device, vertex_buffer_memory, 0, vertex_buffer_information.size, 0, &data);
+	memcpy(data, vertices.data(), (size_t)vertex_buffer_information.size);
+	vkUnmapMemory(device, vertex_buffer_memory);
+}
+
 void Vulkan::create_command_buffers()
 {
 	command_buffers.resize(framebuffers.size());
@@ -596,8 +639,13 @@ void Vulkan::create_command_buffers()
 		render_pass_information.pClearValues = &clearColor;
 		vkCmdBeginRenderPass(command_buffers[i], &render_pass_information,
 			VK_SUBPASS_CONTENTS_INLINE);
+
 		vkCmdBindPipeline(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		vkCmdDraw(command_buffers[i], 3, 1, 0, 0);
+		VkBuffer vertex_buffers[]{vertex_buffer};
+		VkDeviceSize offsets[]{0};
+		vkCmdBindVertexBuffers(command_buffers[i], 0, 1, vertex_buffers, offsets);
+		vkCmdDraw(command_buffers[i], static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+
 		vkCmdEndRenderPass(command_buffers[i]);
 		if(vkEndCommandBuffer(command_buffers[i]) != VK_SUCCESS)
 			error("Could not record commands to a Vulkan command buffer.");
