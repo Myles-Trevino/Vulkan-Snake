@@ -3,16 +3,16 @@
 
 int WinMain(HINSTANCE instance, HINSTANCE previous_instance, LPSTR arguments, int show)
 {
+	//Vertex data
 	const std::vector<float> vertices
 	{
-		0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
-		0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
-		-0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
-
-		-0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
-		-0.5f, -0.5f, 1.0f, 1.0f, 1.0f,
-		0.5f, -0.5f, 1.0f, 0.0f, 0.0f
+		-0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
+		0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+		-0.5f, 0.5f, 1.0f, 1.0f, 1.0f
 	};
+
+	const std::vector<uint16_t> indices{0, 1, 2, 2, 3, 0};
 
 	std::vector<VkVertexInputBindingDescription> vertex_binding_descriptions{1};
 	vertex_binding_descriptions[0].stride = sizeof(float)*5;
@@ -29,11 +29,13 @@ int WinMain(HINSTANCE instance, HINSTANCE previous_instance, LPSTR arguments, in
 	vertex_attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 	vertex_attribute_descriptions[1].offset = sizeof(float)*2;
 
+	//Initialize
 	Window window{"Oreginum Engine Vulkan Test", {1000, 600}, instance, true};
 	Vulkan vulkan{window, "Oreginum Engine Vulkan Test", {0, 1, 0},
 		"Oreginum Engine", {0, 1, 0}, {1, 0, 0}, vertex_binding_descriptions, 
-		vertex_attribute_descriptions, vertices, true};
+		vertex_attribute_descriptions, vertices, indices, true};
 
+	//Program
 	while(!window.was_exited())
 	{
 		window.update();

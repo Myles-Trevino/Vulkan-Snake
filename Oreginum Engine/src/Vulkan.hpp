@@ -36,18 +36,20 @@ public:
 		const glm::ivec3& engine_version, const glm::ivec3& vulkan_version,
 		const std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions,
 		const std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions,
-		const std::vector<float>& vertices, bool debug = false);
+		const std::vector<float>& vertices, const std::vector<uint16_t>& indices,
+		bool debug = false);
 	~Vulkan(){ vkDeviceWaitIdle(device); }
 
 	void render();
-	void recreate_swapchain();
 
 private:
 	const Window& WINDOW;
 	const bool DEBUG;
+	const std::vector<float>& vertices;
+	const std::vector<uint16_t>& indices;
 	const std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions;
 	const std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions;
-	const std::vector<float>& vertices;
+
 	Vulkan_Deleter<VkInstance> instance{vkDestroyInstance};
 	Vulkan_Deleter<VkDebugReportCallbackEXT> debug_callback{instance, destroy_debug_callback};
 	Vulkan_Deleter<VkSurfaceKHR> surface{instance, vkDestroySurfaceKHR};
@@ -74,6 +76,8 @@ private:
 	Vulkan_Deleter<VkCommandPool> command_pool{device, vkDestroyCommandPool};
 	Vulkan_Deleter<VkBuffer> vertex_buffer{device, vkDestroyBuffer};
 	Vulkan_Deleter<VkDeviceMemory> vertex_buffer_memory{device, vkFreeMemory};
+	Vulkan_Deleter<VkBuffer> index_buffer{device, vkDestroyBuffer};
+	Vulkan_Deleter<VkDeviceMemory> index_buffer_memory{device, vkFreeMemory};
 	std::vector<VkCommandBuffer> command_buffers;
 	Vulkan_Deleter<VkSemaphore> image_available_semaphore{device, vkDestroySemaphore};
 	Vulkan_Deleter<VkSemaphore> render_finished_semaphore{device, vkDestroySemaphore};
@@ -101,6 +105,13 @@ private:
 	void create_command_pool();
 	uint32_t find_memory(uint32_t type, VkMemoryPropertyFlags properties);
 	void create_vertex_buffer();
+	void create_index_buffer();
 	void create_command_buffers();
 	void create_semaphores();
+
+	void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags properties, Vulkan_Deleter<VkBuffer>& buffer,
+		Vulkan_Deleter<VkDeviceMemory>& buffer_memory);
+	void copy_buffer(VkBuffer source_buffer, VkBuffer destination_buffer, VkDeviceSize size);
+	void recreate_swapchain();
 };

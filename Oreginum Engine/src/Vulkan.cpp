@@ -11,9 +11,10 @@ Vulkan::Vulkan(const Window& window, const std::string& program_title,
 	const glm::ivec3& engine_version, const glm::ivec3& vulkan_version,
 	const std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions,
 	const std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions,
-	const std::vector<float>& vertices, bool debug)
+	const std::vector<float>& vertices, const std::vector<uint16_t>& indices, bool debug)
 	: WINDOW(window), DEBUG(debug), vertex_binding_descriptions(vertex_binding_descriptions),
-	vertex_attribute_descriptions(vertex_attribute_descriptions), vertices(vertices)
+	vertex_attribute_descriptions(vertex_attribute_descriptions), vertices(vertices),
+	indices(indices)
 {
 	create_instance(window, program_title, program_version,
 		engine_title, engine_version, vulkan_version);
@@ -28,6 +29,7 @@ Vulkan::Vulkan(const Window& window, const std::string& program_title,
 	create_framebuffers();
 	create_command_pool();
 	create_vertex_buffer();
+	create_index_buffer();
 	create_command_buffers();
 	create_semaphores();
 }
@@ -584,29 +586,39 @@ uint32_t Vulkan::find_memory(uint32_t type, VkMemoryPropertyFlags properties)
 
 void Vulkan::create_vertex_buffer()
 {
-	VkBufferCreateInfo vertex_buffer_information{};
-	vertex_buffer_information.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	vertex_buffer_information.size = sizeof(vertices[0])*vertices.size();
-	vertex_buffer_information.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	vertex_buffer_information.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if(vkCreateBuffer(device, &vertex_buffer_information, nullptr, vertex_buffer.replace())
-		!= VK_SUCCESS) error("Could not create a Vulkan vertex buffer");
+	VkDeviceSize buffer_size{sizeof(vertices[0])*vertices.size()};
 
-	VkMemoryRequirements memory_requirements;
-	vkGetBufferMemoryRequirements(device, vertex_buffer, &memory_requirements);
-	VkMemoryAllocateInfo memory_allocation_information{};
-	memory_allocation_information.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	memory_allocation_information.allocationSize = memory_requirements.size;
-	memory_allocation_information.memoryTypeIndex = find_memory(memory_requirements.memoryTypeBits,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	if(vkAllocateMemory(device, &memory_allocation_information,
-		nullptr, vertex_buffer_memory.replace()) != VK_SUCCESS)
-		error("Could not allocate memory for the Vulkan vertex buffer.");
-	vkBindBufferMemory(device, vertex_buffer, vertex_buffer_memory, 0);
+	Vulkan_Deleter<VkBuffer> staging_buffer{device, vkDestroyBuffer};
+	Vulkan_Deleter<VkDeviceMemory> staging_buffer_memory{device, vkFreeMemory};
+	create_buffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+		| VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging_buffer, staging_buffer_memory);
 	void *data;
-	vkMapMemory(device, vertex_buffer_memory, 0, vertex_buffer_information.size, 0, &data);
-	memcpy(data, vertices.data(), (size_t)vertex_buffer_information.size);
-	vkUnmapMemory(device, vertex_buffer_memory);
+	vkMapMemory(device, staging_buffer_memory, 0, buffer_size, 0, &data);
+	memcpy(data, vertices.data(), (size_t)buffer_size);
+	vkUnmapMemory(device, staging_buffer_memory);
+
+	create_buffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertex_buffer, vertex_buffer_memory);
+	copy_buffer(staging_buffer, vertex_buffer, buffer_size);
+}
+
+void Vulkan::create_index_buffer()
+{
+	VkDeviceSize buffer_size{sizeof(indices[0])*indices.size()};
+	Vulkan_Deleter<VkBuffer> staging_buffer{device, vkDestroyBuffer};
+	Vulkan_Deleter<VkDeviceMemory> staging_buffer_memory{device, vkFreeMemory};
+	create_buffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		staging_buffer, staging_buffer_memory);
+
+	void *data;
+	vkMapMemory(device, staging_buffer_memory, 0, buffer_size, 0, &data);
+	memcpy(data, indices.data(), (size_t)buffer_size);
+	vkUnmapMemory(device, staging_buffer_memory);
+
+	create_buffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, index_buffer, index_buffer_memory);
+	copy_buffer(staging_buffer, index_buffer, buffer_size);
 }
 
 void Vulkan::create_command_buffers()
@@ -644,7 +656,8 @@ void Vulkan::create_command_buffers()
 		VkBuffer vertex_buffers[]{vertex_buffer};
 		VkDeviceSize offsets[]{0};
 		vkCmdBindVertexBuffers(command_buffers[i], 0, 1, vertex_buffers, offsets);
-		vkCmdDraw(command_buffers[i], static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+		vkCmdBindIndexBuffer(command_buffers[i], index_buffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdDrawIndexed(command_buffers[i], indices.size(), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(command_buffers[i]);
 		if(vkEndCommandBuffer(command_buffers[i]) != VK_SUCCESS)
@@ -659,6 +672,64 @@ void Vulkan::create_semaphores()
 	if(vkCreateSemaphore(device, &semaphore_information, nullptr, &image_available_semaphore)
 		!= VK_SUCCESS || vkCreateSemaphore(device, &semaphore_information, nullptr,
 			&render_finished_semaphore) != VK_SUCCESS) error("Could not create Vulkan semaphores.");
+}
+
+void Vulkan::copy_buffer(VkBuffer source_buffer, VkBuffer destination_buffer, VkDeviceSize size)
+{
+	VkCommandBufferAllocateInfo allocation_information{};
+	allocation_information.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocation_information.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocation_information.commandPool = command_pool;
+	allocation_information.commandBufferCount = 1;
+	VkCommandBuffer command_buffer;
+	vkAllocateCommandBuffers(device, &allocation_information, &command_buffer);
+
+	VkCommandBufferBeginInfo begin_information{};
+	begin_information.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	begin_information.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	vkBeginCommandBuffer(command_buffer, &begin_information);
+
+	VkBufferCopy copy_region{};
+	copy_region.srcOffset = 0;
+	copy_region.dstOffset = 0;
+	copy_region.size = size;
+	vkCmdCopyBuffer(command_buffer, source_buffer, destination_buffer, 1, &copy_region);
+	vkEndCommandBuffer(command_buffer);
+
+	VkSubmitInfo submit_information{};
+	submit_information.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_information.commandBufferCount = 1;
+	submit_information.pCommandBuffers = &command_buffer;
+	vkQueueSubmit(graphics_queue, 1, &submit_information, VK_NULL_HANDLE);
+	vkQueueWaitIdle(graphics_queue);
+	vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+}
+
+void Vulkan::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage,
+	VkMemoryPropertyFlags properties, Vulkan_Deleter<VkBuffer>& buffer,
+	Vulkan_Deleter<VkDeviceMemory>& buffer_memory)
+{
+	VkBufferCreateInfo buffer_information{};
+	buffer_information.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_information.size = size;
+	buffer_information.usage = usage;
+	buffer_information.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if(vkCreateBuffer(device, &buffer_information, nullptr, buffer.replace()) != VK_SUCCESS)
+		error("Could not create Vulkan buffer.");
+
+	VkMemoryRequirements memory_requirements;
+	vkGetBufferMemoryRequirements(device, buffer, &memory_requirements);
+
+	VkMemoryAllocateInfo allocation_information{};
+	allocation_information.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocation_information.allocationSize = memory_requirements.size;
+	allocation_information.memoryTypeIndex =
+		find_memory(memory_requirements.memoryTypeBits, properties);
+	if(vkAllocateMemory(device, &allocation_information, nullptr,
+		buffer_memory.replace()) != VK_SUCCESS) error("Could not allocate Vulkan buffer memory.");
+
+	vkBindBufferMemory(device, buffer, buffer_memory, 0);
 }
 
 void Vulkan::recreate_swapchain()
