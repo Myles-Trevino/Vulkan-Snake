@@ -48,16 +48,20 @@ Window::Window(const std::string& title, const glm::ivec2& resolution,
 	ShowWindow(window, SW_SHOW);
 }
 
-void Window::update()
+bool Window::update()
 {
 	static MSG message;
-	if(!GetMessage(&message, NULL, 0, 0)) exited = true;
-	TranslateMessage(&message);
-	DispatchMessage(&message);
+	while(PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
+	{
+		if(message.message == WM_QUIT) return false;
+		TranslateMessage(&message);
+		DispatchMessage(&message);
+	}
 
 	RECT rect;
 	GetClientRect(window, &rect);
 	glm::ivec2 old_resolution{resolution};
 	resolution = {rect.right-rect.left, rect.bottom-rect.top};
 	resized = (old_resolution != resolution);
+	return true;
 }

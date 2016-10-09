@@ -11,10 +11,12 @@ Vulkan::Vulkan(const Window& window, const std::string& program_title,
 	const glm::ivec3& engine_version, const glm::ivec3& vulkan_version,
 	const std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions,
 	const std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions,
-	const std::vector<float>& vertices, const std::vector<uint16_t>& indices, bool debug)
+	const std::vector<float>& vertices, const std::vector<uint16_t>& indices,
+	const void *const uniform_buffer_object, const size_t uniform_buffer_object_size, bool debug)
 	: WINDOW(window), DEBUG(debug), vertex_binding_descriptions(vertex_binding_descriptions),
 	vertex_attribute_descriptions(vertex_attribute_descriptions), vertices(vertices),
-	indices(indices)
+	indices(indices), uniform_buffer_object(uniform_buffer_object),
+	uniform_buffer_object_size(uniform_buffer_object_size)
 {
 	create_instance(window, program_title, program_version,
 		engine_title, engine_version, vulkan_version);
@@ -25,11 +27,15 @@ Vulkan::Vulkan(const Window& window, const std::string& program_title,
 	create_swapchain();
 	create_image_views();
 	create_render_pass();
+	create_descriptor_set_layout();
 	create_graphics_pipeline();
 	create_framebuffers();
 	create_command_pool();
 	create_vertex_buffer();
 	create_index_buffer();
+	create_uniform_buffer();
+	create_descriptor_pool();
+	create_descriptor_set();
 	create_command_buffers();
 	create_semaphores();
 }
@@ -405,6 +411,25 @@ Vulkan_Deleter<VkShaderModule> Vulkan::create_shader(const std::string& shader)
 	return module;
 }
 
+void Vulkan::create_descriptor_set_layout()
+{
+	VkDescriptorSetLayoutBinding uniform_buffer_object_layout_binding{};
+	uniform_buffer_object_layout_binding.binding = 0;
+	uniform_buffer_object_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uniform_buffer_object_layout_binding.descriptorCount = 1;
+	uniform_buffer_object_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uniform_buffer_object_layout_binding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutCreateInfo layout_information{};
+	layout_information.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layout_information.bindingCount = 1;
+	layout_information.pBindings = &uniform_buffer_object_layout_binding;
+
+	if(vkCreateDescriptorSetLayout(device, &layout_information, nullptr,
+		descriptor_set_layout.replace()) != VK_SUCCESS)
+		error("Could not create descriptor set layout.");
+}
+
 void Vulkan::create_graphics_pipeline()
 {
 	Vulkan_Deleter<VkShaderModule> primitive_vertex{create_shader("Primitive Vertex")};
@@ -465,7 +490,7 @@ void Vulkan::create_graphics_pipeline()
 	rasterizer_information.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer_information.lineWidth = 1.0f;
 	rasterizer_information.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer_information.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizer_information.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer_information.depthBiasEnable = VK_FALSE;
 	rasterizer_information.depthBiasConstantFactor = 0.0f;
 	rasterizer_information.depthBiasClamp = 0.0f;
@@ -509,10 +534,11 @@ void Vulkan::create_graphics_pipeline()
 	dynamic_state_information.dynamicStateCount = static_cast<uint32_t>(DYNAMIC_STATES.size());
 	dynamic_state_information.pDynamicStates = DYNAMIC_STATES.data();
 
+	VkDescriptorSetLayout set_layouts[]{descriptor_set_layout};
 	VkPipelineLayoutCreateInfo pipeline_layout_information{};
 	pipeline_layout_information.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipeline_layout_information.setLayoutCount = 0;
-	pipeline_layout_information.pSetLayouts = nullptr;
+	pipeline_layout_information.setLayoutCount = 1;
+	pipeline_layout_information.pSetLayouts = set_layouts;
 	pipeline_layout_information.pushConstantRangeCount = 0;
 	pipeline_layout_information.pPushConstantRanges = 0;
 
@@ -621,6 +647,63 @@ void Vulkan::create_index_buffer()
 	copy_buffer(staging_buffer, index_buffer, buffer_size);
 }
 
+void Vulkan::create_uniform_buffer()
+{
+	create_buffer(uniform_buffer_object_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		uniform_staging_buffer, uniform_staging_buffer_memory);
+	create_buffer(uniform_buffer_object_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		uniform_buffer, uniform_buffer_memory);
+}
+
+void Vulkan::create_descriptor_pool()
+{
+	VkDescriptorPoolSize pool_size{};
+	pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	pool_size.descriptorCount = 1;
+
+	VkDescriptorPoolCreateInfo pool_information{};
+	pool_information.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	pool_information.poolSizeCount = 1;
+	pool_information.pPoolSizes = &pool_size;
+	pool_information.maxSets = 1;
+
+	if(vkCreateDescriptorPool(device, &pool_information, nullptr, descriptor_pool.replace())
+		!= VK_SUCCESS) error("Could not create Vulkan descriptor pool.");
+}
+
+void Vulkan::create_descriptor_set()
+{
+	VkDescriptorSetLayout descriptor_set_layouts[]{descriptor_set_layout};
+	VkDescriptorSetAllocateInfo allocation_information{};
+	allocation_information.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocation_information.descriptorPool = descriptor_pool;
+	allocation_information.descriptorSetCount = 1;
+	allocation_information.pSetLayouts = descriptor_set_layouts;
+
+	if(vkAllocateDescriptorSets(device, &allocation_information, &descriptor_set) != VK_SUCCESS)
+		error("Could not allocate descriptor set.");
+
+	VkDescriptorBufferInfo descriptor_buffer_information{};
+	descriptor_buffer_information.buffer = uniform_buffer;
+	descriptor_buffer_information.offset = 0;
+	descriptor_buffer_information.range = uniform_buffer_object_size;
+
+	VkWriteDescriptorSet write_descriptor_set{};
+	write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write_descriptor_set.dstSet = descriptor_set;
+	write_descriptor_set.dstBinding = 0;
+	write_descriptor_set.dstArrayElement = 0;
+	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	write_descriptor_set.descriptorCount = 1;
+	write_descriptor_set.pBufferInfo = &descriptor_buffer_information;
+	write_descriptor_set.pImageInfo = nullptr;
+	write_descriptor_set.pTexelBufferView = nullptr;
+
+	vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, nullptr);
+}
+
 void Vulkan::create_command_buffers()
 {
 	command_buffers.resize(framebuffers.size());
@@ -657,7 +740,9 @@ void Vulkan::create_command_buffers()
 		VkDeviceSize offsets[]{0};
 		vkCmdBindVertexBuffers(command_buffers[i], 0, 1, vertex_buffers, offsets);
 		vkCmdBindIndexBuffer(command_buffers[i], index_buffer, 0, VK_INDEX_TYPE_UINT16);
-		vkCmdDrawIndexed(command_buffers[i], indices.size(), 1, 0, 0, 0);
+		vkCmdBindDescriptorSets(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
+		vkCmdDrawIndexed(command_buffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(command_buffers[i]);
 		if(vkEndCommandBuffer(command_buffers[i]) != VK_SUCCESS)
@@ -741,4 +826,14 @@ void Vulkan::recreate_swapchain()
 	create_graphics_pipeline();
 	create_framebuffers();
 	create_command_buffers();
+}
+
+void Vulkan::update_uniform_buffer()
+{
+	void* data;
+	vkMapMemory(device, uniform_staging_buffer_memory, 0, uniform_buffer_object_size, 0, &data);
+	memcpy(data, uniform_buffer_object, uniform_buffer_object_size);
+	vkUnmapMemory(device, uniform_staging_buffer_memory);
+
+	copy_buffer(uniform_staging_buffer, uniform_buffer, uniform_buffer_object_size);
 }

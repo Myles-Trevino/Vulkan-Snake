@@ -37,8 +37,14 @@ public:
 		const std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions,
 		const std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions,
 		const std::vector<float>& vertices, const std::vector<uint16_t>& indices,
+		const void *const uniform_buffer_object, const size_t uniform_buffer_object_size,
 		bool debug = false);
 	~Vulkan(){ vkDeviceWaitIdle(device); }
+
+	void update_uniform_buffer();
+
+	glm::ivec2 get_swapchain_extent() const
+	{ return {swapchain_extent.width, swapchain_extent.width}; }
 
 	void render();
 
@@ -49,6 +55,8 @@ private:
 	const std::vector<uint16_t>& indices;
 	const std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions;
 	const std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions;
+	const void *const uniform_buffer_object;
+	const size_t uniform_buffer_object_size;
 
 	Vulkan_Deleter<VkInstance> instance{vkDestroyInstance};
 	Vulkan_Deleter<VkDebugReportCallbackEXT> debug_callback{instance, destroy_debug_callback};
@@ -70,6 +78,8 @@ private:
 	std::vector<VkImage> swapchain_images;
 	std::vector<Vulkan_Deleter<VkImageView>> swapchain_image_views;
 	Vulkan_Deleter<VkRenderPass> render_pass{device, vkDestroyRenderPass};
+	Vulkan_Deleter<VkDescriptorSetLayout> descriptor_set_layout
+	{device, vkDestroyDescriptorSetLayout};
 	Vulkan_Deleter<VkPipelineLayout> pipeline_layout{device, vkDestroyPipelineLayout};
 	Vulkan_Deleter<VkPipeline> pipeline{device, vkDestroyPipeline};
 	std::vector<Vulkan_Deleter<VkFramebuffer>> framebuffers;
@@ -78,6 +88,12 @@ private:
 	Vulkan_Deleter<VkDeviceMemory> vertex_buffer_memory{device, vkFreeMemory};
 	Vulkan_Deleter<VkBuffer> index_buffer{device, vkDestroyBuffer};
 	Vulkan_Deleter<VkDeviceMemory> index_buffer_memory{device, vkFreeMemory};
+	Vulkan_Deleter<VkBuffer> uniform_staging_buffer{device, vkDestroyBuffer};
+	Vulkan_Deleter<VkDeviceMemory> uniform_staging_buffer_memory{device, vkFreeMemory};
+	Vulkan_Deleter<VkBuffer> uniform_buffer{device, vkDestroyBuffer};
+	Vulkan_Deleter<VkDeviceMemory> uniform_buffer_memory{device, vkFreeMemory};
+	Vulkan_Deleter<VkDescriptorPool> descriptor_pool{device, vkDestroyDescriptorPool};
+	VkDescriptorSet descriptor_set;
 	std::vector<VkCommandBuffer> command_buffers;
 	Vulkan_Deleter<VkSemaphore> image_available_semaphore{device, vkDestroySemaphore};
 	Vulkan_Deleter<VkSemaphore> render_finished_semaphore{device, vkDestroySemaphore};
@@ -100,12 +116,16 @@ private:
 	void create_image_views();
 	void create_render_pass();
 	Vulkan_Deleter<VkShaderModule> create_shader(const std::string& shader);
+	void create_descriptor_set_layout();
 	void create_graphics_pipeline();
 	void create_framebuffers();
 	void create_command_pool();
 	uint32_t find_memory(uint32_t type, VkMemoryPropertyFlags properties);
 	void create_vertex_buffer();
 	void create_index_buffer();
+	void create_uniform_buffer();
+	void create_descriptor_pool();
+	void create_descriptor_set();
 	void create_command_buffers();
 	void create_semaphores();
 

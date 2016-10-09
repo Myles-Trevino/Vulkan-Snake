@@ -3,6 +3,9 @@
 
 layout(location = 0) in vec3 fragment_color;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4 out_color;
 
-void main(){ outColor = vec4(fragment_color, 0.0); }
+void main()
+{
+    out_color = vec4(fragment_color, 1.0);
+}

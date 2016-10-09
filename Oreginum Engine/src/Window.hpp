@@ -9,7 +9,7 @@ public:
 	Window(const std::string& title, const glm::ivec2& resolution,
 		HINSTANCE instance, bool debug = false);
 
-	void update();
+	bool update();
 
 	HINSTANCE get_instance() const { return instance; }
 	HWND get() const { return window; }
@@ -17,7 +17,6 @@ public:
 	glm::ivec2 get_resolution() const { return resolution; };
 	bool was_resized() const { return resized; }
 	bool is_visible() const { return (resolution.x > 0 && resolution.y > 0); }
-	bool was_exited() const { return exited; }
 
 private:
 	const std::string TITLE;
@@ -27,7 +26,6 @@ private:
 	HWND window;
 	glm::ivec2 screen_resolution;
 	bool resized;
-	bool exited;
 
 	static LRESULT CALLBACK window_callback(HWND window, UINT message,
 		WPARAM message_information, LPARAM message_informaton_long);
