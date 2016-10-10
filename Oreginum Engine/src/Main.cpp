@@ -1,4 +1,6 @@
 #include <chrono>
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <GLM/glm.hpp>
 #include <GLM/gtc/matrix_transform.hpp>
 #include "Vulkan.hpp"
@@ -13,28 +15,38 @@ int WinMain(HINSTANCE instance, HINSTANCE previous_instance, LPSTR arguments, in
 	//Vertex data
 	const std::vector<float> vertices
 	{
-		-0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-		0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-		0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-		-0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f
+		-0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+		0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+		-0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+
+		-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+		0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+		-0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+
+		-0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+		0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+		-0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f
 	};
 
-	const std::vector<uint16_t> indices{0, 1, 2, 2, 3, 0};
+	const std::vector<uint16_t> indices{0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8};
 
 	std::vector<VkVertexInputBindingDescription> vertex_binding_descriptions{1};
-	vertex_binding_descriptions[0].stride = sizeof(float)*7;
+	vertex_binding_descriptions[0].stride = sizeof(float)*8;
 	vertex_binding_descriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 	std::vector<VkVertexInputAttributeDescription> vertex_attribute_descriptions{3};
-	vertex_attribute_descriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+	vertex_attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 
 	vertex_attribute_descriptions[1].location = 1;
 	vertex_attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	vertex_attribute_descriptions[1].offset = sizeof(float)*2;
+	vertex_attribute_descriptions[1].offset = sizeof(float)*3;
 
 	vertex_attribute_descriptions[2].location = 2;
 	vertex_attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-	vertex_attribute_descriptions[2].offset = sizeof(float)*5;
+	vertex_attribute_descriptions[2].offset = sizeof(float)*6;
 
 	//Uniforms
 	struct Uniforms{ glm::fmat4 mvp; } uniforms;

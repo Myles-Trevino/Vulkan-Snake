@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 #include <windows.h>
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <GLM/glm.hpp>
 
 class Window
