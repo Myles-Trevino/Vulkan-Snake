@@ -38,7 +38,7 @@ public:
 		const std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions,
 		const std::vector<float>& vertices, const std::vector<uint16_t>& indices,
 		const void *const uniform_buffer_object, const size_t uniform_buffer_object_size,
-		bool debug = false);
+		const std::string& texture, bool debug = false);
 	~Vulkan(){ vkDeviceWaitIdle(device); }
 
 	void update_uniform_buffer();
@@ -84,6 +84,10 @@ private:
 	Vulkan_Deleter<VkPipeline> pipeline{device, vkDestroyPipeline};
 	std::vector<Vulkan_Deleter<VkFramebuffer>> framebuffers;
 	Vulkan_Deleter<VkCommandPool> command_pool{device, vkDestroyCommandPool};
+	Vulkan_Deleter<VkImage> texture{device, vkDestroyImage};
+	Vulkan_Deleter<VkDeviceMemory> texture_memory{device, vkFreeMemory};
+	Vulkan_Deleter<VkImageView> texture_view{device, vkDestroyImageView};
+	Vulkan_Deleter<VkSampler> texture_sampler{device, vkDestroySampler};
 	Vulkan_Deleter<VkBuffer> vertex_buffer{device, vkDestroyBuffer};
 	Vulkan_Deleter<VkDeviceMemory> vertex_buffer_memory{device, vkFreeMemory};
 	Vulkan_Deleter<VkBuffer> index_buffer{device, vkDestroyBuffer};
@@ -120,6 +124,12 @@ private:
 	void create_graphics_pipeline();
 	void create_framebuffers();
 	void create_command_pool();
+	void create_texture(uint32_t width, uint32_t height, VkFormat format,
+		VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+		Vulkan_Deleter<VkImage>& texture, Vulkan_Deleter<VkDeviceMemory>& texture_memory);
+	void load_texture(const std::string& path);
+	void create_texture_view();
+	void create_texture_sampler();
 	uint32_t find_memory(uint32_t type, VkMemoryPropertyFlags properties);
 	void create_vertex_buffer();
 	void create_index_buffer();
@@ -132,6 +142,14 @@ private:
 	void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags properties, Vulkan_Deleter<VkBuffer>& buffer,
 		Vulkan_Deleter<VkDeviceMemory>& buffer_memory);
+	VkCommandBuffer begin_single_time_commands();
+	void end_single_time_commands(VkCommandBuffer command_buffer);
 	void copy_buffer(VkBuffer source_buffer, VkBuffer destination_buffer, VkDeviceSize size);
+	void transition_texture_layout(VkImage texture, VkFormat format,
+		VkImageLayout old_layout, VkImageLayout new_layout);
+	void copy_texture(VkImage source_image, VkImage destination_image,
+		uint32_t width, uint32_t height);
+	void create_image_view(VkImage image, VkFormat format, Vulkan_Deleter<VkImageView>& image_view);
+
 	void recreate_swapchain();
 };
