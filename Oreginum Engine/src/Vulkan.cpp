@@ -57,7 +57,7 @@ void Vulkan::render()
 
 	if(result == VK_ERROR_OUT_OF_DATE_KHR){ recreate_swapchain(); return; }
 	else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-		error("Could not acquire Vulkan swap chain image.");
+		error("Could not acquire a Vulkan swapchain image.");
 
 	VkSemaphore wait_semaphores[]{image_available_semaphore};
 	VkPipelineStageFlags wait_stages[]{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -73,7 +73,7 @@ void Vulkan::render()
 	submit_information.pSignalSemaphores = signal_semaphores;
 	if(vkQueueSubmit(graphics_queue, 1,
 		&submit_information, VK_NULL_HANDLE) != VK_SUCCESS)
-		error("Could not submit Vulkan command buffer.");
+		error("Could not submit a Vulkan command buffer.");
 	VkSwapchainKHR swapchains[]{swapchain};
 	VkPresentInfoKHR present_information{};
 	present_information.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -86,7 +86,7 @@ void Vulkan::render()
 
 	result = vkQueuePresentKHR(present_queue, &present_information);
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) recreate_swapchain();
-	else if(result != VK_SUCCESS) error("Could not present Vulkan swap chain image.");
+	else if(result != VK_SUCCESS) error("Could not present a Vulkan swapchain image.");
 }
 
 void Vulkan::create_instance(const Window& window, const std::string& program_title,
@@ -120,7 +120,7 @@ void Vulkan::create_instance(const Window& window, const std::string& program_ti
 	instance_information.ppEnabledLayerNames = layers.data();
 
 	if(vkCreateInstance(&instance_information, nullptr, &instance) != VK_SUCCESS)
-		error("Could not create a Vulkan instance.");
+		error("Vulkan is not supported sufficiently.");
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debug_callback_function(VkDebugReportFlagsEXT flags,
@@ -624,7 +624,7 @@ void Vulkan::create_command_pool()
 	pool_information.queueFamilyIndex = graphics_queue_index;
 	pool_information.flags = 0;
 	if(vkCreateCommandPool(device, &pool_information, nullptr, &command_pool)
-		!= VK_SUCCESS) error("Could not create Vulkan command pool.");
+		!= VK_SUCCESS) error("Could not create a Vulkan command pool.");
 }
 
 void Vulkan::create_image(uint32_t width, uint32_t height, VkFormat format,
@@ -646,7 +646,7 @@ void Vulkan::create_image(uint32_t width, uint32_t height, VkFormat format,
 	image_information.samples = VK_SAMPLE_COUNT_1_BIT;
 	image_information.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	if(vkCreateImage(device, &image_information, nullptr, texture.replace()) != VK_SUCCESS)
-		error("Could not create Vulkan image.");
+		error("Could not create a Vulkan image.");
 
 	VkMemoryRequirements memory_requirements;
 	vkGetImageMemoryRequirements(device, texture, &memory_requirements);
@@ -675,7 +675,7 @@ void Vulkan::create_image_view(VkImage image, VkFormat format, VkImageAspectFlag
 	image_view_information.subresourceRange.layerCount = 1;
 
 	if(vkCreateImageView(device, &image_view_information, nullptr, image_view.replace())
-		!= VK_SUCCESS) error("Could not create Vulkan image view.");
+		!= VK_SUCCESS) error("Could not create a Vulkan image view.");
 }
 
 VkCommandBuffer Vulkan::begin_single_time_commands()
@@ -753,7 +753,7 @@ void Vulkan::transition_image_layout(VkImage texture, VkFormat format,
 		texture_memory_barrier.srcAccessMask = NULL,
 		texture_memory_barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
 			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-	else error("Could not complete Vulkan texture layout transition.");
+	else error("Could not complete a Vulkan texture layout transition.");
 
 	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &texture_memory_barrier);
@@ -803,7 +803,7 @@ void Vulkan::create_texture(const std::string& path)
 	int width, height, channels;
 	stbi_uc *data{stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha)};
 	VkDeviceSize size{static_cast<VkDeviceSize>(width*height*4)};
-	if(!data) error("Could not load image \""+path+"\".");
+	if(!data) error("Could not load the image \""+path+"\".");
 
 	Vulkan_Deleter<VkImage> staging{device, vkDestroyImage};
 	Vulkan_Deleter<VkDeviceMemory> staging_memory{device, vkFreeMemory};
@@ -851,7 +851,7 @@ void Vulkan::create_texture_sampler()
 	sampler_information.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
 	if(vkCreateSampler(device, &sampler_information, nullptr, texture_sampler.replace())
-		!= VK_SUCCESS) error("Could not create Vulkan texture sampler.");
+		!= VK_SUCCESS) error("Could not create a Vulkan texture sampler.");
 }
 
 uint32_t Vulkan::find_memory(uint32_t type, VkMemoryPropertyFlags properties)
@@ -875,7 +875,7 @@ void Vulkan::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage,
 	buffer_information.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	if(vkCreateBuffer(device, &buffer_information, nullptr, buffer.replace()) != VK_SUCCESS)
-		error("Could not create Vulkan buffer.");
+		error("Could not a create Vulkan buffer.");
 
 	VkMemoryRequirements memory_requirements;
 	vkGetBufferMemoryRequirements(device, buffer, &memory_requirements);
@@ -962,7 +962,7 @@ void Vulkan::create_descriptor_pool()
 	pool_information.maxSets = 1;
 
 	if(vkCreateDescriptorPool(device, &pool_information, nullptr, descriptor_pool.replace())
-		!= VK_SUCCESS) error("Could not create Vulkan descriptor pool.");
+		!= VK_SUCCESS) error("Could not create a Vulkan descriptor pool.");
 }
 
 void Vulkan::create_descriptor_set()
@@ -975,7 +975,7 @@ void Vulkan::create_descriptor_set()
 	allocation_information.pSetLayouts = descriptor_set_layouts;
 
 	if(vkAllocateDescriptorSets(device, &allocation_information, &descriptor_set) != VK_SUCCESS)
-		error("Could not allocate descriptor set.");
+		error("Could not allocate a Vulkan descriptor set.");
 
 	VkDescriptorBufferInfo descriptor_buffer_information{};
 	descriptor_buffer_information.buffer = uniform_buffer;
@@ -1062,7 +1062,8 @@ void Vulkan::create_semaphores()
 	semaphore_information.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	if(vkCreateSemaphore(device, &semaphore_information, nullptr, &image_available_semaphore)
 		!= VK_SUCCESS || vkCreateSemaphore(device, &semaphore_information, nullptr,
-			&render_finished_semaphore) != VK_SUCCESS) error("Could not create Vulkan semaphores.");
+			&render_finished_semaphore) != VK_SUCCESS)
+		error("Could not create a Vulkan semaphore.");
 }
 
 void Vulkan::recreate_swapchain()

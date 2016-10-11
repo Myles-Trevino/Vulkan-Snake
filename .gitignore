@@ -1,5 +1,7 @@
 .vs/
-bin/
+*.iobj
+*.ipdb
+*.pdb
 */int/
 *.user
 *.VC.db
