@@ -1,7 +1,7 @@
-#include "Error.hpp"
+#include "Core.hpp"
 #include "Window.hpp"
 
-LRESULT CALLBACK Window::window_callback(HWND window, UINT message,
+LRESULT CALLBACK Oreginum::Window::window_callback(HWND window, UINT message,
 	WPARAM information, LPARAM informaton_long)
 {
 	switch(message)
@@ -14,10 +14,11 @@ LRESULT CALLBACK Window::window_callback(HWND window, UINT message,
 	return NULL;
 }
 
-Window::Window(const std::string& title, const glm::ivec2& resolution,
-	HINSTANCE instance, bool debug)
-	: TITLE(title), resolution(resolution), instance(instance)
+Oreginum::Window::Window(const std::string& title, const glm::ivec2& resolution,
+	HINSTANCE instance, bool debug) : TITLE(title), resolution(resolution), instance(instance)
 {
+	timeBeginPeriod(1);
+
 	if(debug)
 	{
 		AllocConsole();
@@ -38,17 +39,17 @@ Window::Window(const std::string& title, const glm::ivec2& resolution,
 	window_information.lpszMenuName = NULL;
 	window_information.lpszClassName = title.c_str();
 	window_information.hIconSm = LoadIcon(window_information.hInstance, IDI_APPLICATION);
-	if(!RegisterClassEx(&window_information)) error("Could not register window.");
+	if(!RegisterClassEx(&window_information)) Core::error("Could not register window.");
 
 	screen_resolution = {GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
 	window = CreateWindow(title.c_str(), title.c_str(), WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS |
 		WS_CLIPCHILDREN, screen_resolution.x/2-resolution.x/2, screen_resolution.y/2-
 		resolution.y/2, resolution.x, resolution.y, NULL, NULL, instance, NULL);
-	if(!window) error("Could not create window.");
+	if(!window) Core::error("Could not create window.");
 	ShowWindow(window, SW_SHOW);
 }
 
-bool Window::update()
+bool Oreginum::Window::update()
 {
 	static MSG message;
 	while(PeekMessage(&message, NULL, 0, 0, PM_REMOVE))

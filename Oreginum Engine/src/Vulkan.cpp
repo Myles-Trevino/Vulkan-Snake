@@ -5,10 +5,10 @@
 #include <array>
 #define STB_IMAGE_IMPLEMENTATION
 #include <STB Image/stb_image.h>
-#include "Error.hpp"
+#include "Core.hpp"
 #include "Vulkan.hpp"
 
-Vulkan::Vulkan(const Window& window, const std::string& program_title,
+Oreginum::Vulkan::Vulkan(const Window& window, const std::string& program_title,
 	const glm::ivec3& program_version, const std::string& engine_title,
 	const glm::ivec3& engine_version, const glm::ivec3& vulkan_version,
 	const std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions,
@@ -47,7 +47,7 @@ Vulkan::Vulkan(const Window& window, const std::string& program_title,
 	create_semaphores();
 }
 
-void Vulkan::render()
+void Oreginum::Vulkan::render()
 {
 	if(WINDOW.was_resized() && WINDOW.is_visible()) recreate_swapchain();
 
@@ -57,7 +57,7 @@ void Vulkan::render()
 
 	if(result == VK_ERROR_OUT_OF_DATE_KHR){ recreate_swapchain(); return; }
 	else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-		error("Could not acquire a Vulkan swapchain image.");
+		Core::error("Could not acquire a Vulkan swapchain image.");
 
 	VkSemaphore wait_semaphores[]{image_available_semaphore};
 	VkPipelineStageFlags wait_stages[]{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -73,7 +73,7 @@ void Vulkan::render()
 	submit_information.pSignalSemaphores = signal_semaphores;
 	if(vkQueueSubmit(graphics_queue, 1,
 		&submit_information, VK_NULL_HANDLE) != VK_SUCCESS)
-		error("Could not submit a Vulkan command buffer.");
+		Core::error("Could not submit a Vulkan command buffer.");
 	VkSwapchainKHR swapchains[]{swapchain};
 	VkPresentInfoKHR present_information{};
 	present_information.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -86,10 +86,10 @@ void Vulkan::render()
 
 	result = vkQueuePresentKHR(present_queue, &present_information);
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) recreate_swapchain();
-	else if(result != VK_SUCCESS) error("Could not present a Vulkan swapchain image.");
+	else if(result != VK_SUCCESS) Core::error("Could not present a Vulkan swapchain image.");
 }
 
-void Vulkan::create_instance(const Window& window, const std::string& program_title,
+void Oreginum::Vulkan::create_instance(const Window& window, const std::string& program_title,
 	const glm::ivec3& program_version, const std::string& engine_title,
 	const glm::ivec3& engine_version, const glm::ivec3& vulkan_version)
 {
@@ -120,10 +120,10 @@ void Vulkan::create_instance(const Window& window, const std::string& program_ti
 	instance_information.ppEnabledLayerNames = layers.data();
 
 	if(vkCreateInstance(&instance_information, nullptr, &instance) != VK_SUCCESS)
-		error("Vulkan is not supported sufficiently.");
+		Core::error("Vulkan is not supported sufficiently.");
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debug_callback_function(VkDebugReportFlagsEXT flags,
+VKAPI_ATTR VkBool32 VKAPI_CALL Oreginum::Vulkan::debug_callback_function(VkDebugReportFlagsEXT flags,
 	VkDebugReportObjectTypeEXT type, uint64_t object, size_t location,
 	int32_t code, const char *layer_prefix, const char *message, void *user_data)
 {
@@ -132,7 +132,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debug_callback_function(VkDebugReportFlag
 	return false;
 }
 
-void Vulkan::create_debug_callback()
+void Oreginum::Vulkan::create_debug_callback()
 {
 	VkDebugReportCallbackCreateInfoEXT debug_information{};
 	debug_information.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
@@ -144,10 +144,10 @@ void Vulkan::create_debug_callback()
 
 	if(!fvkCreateDebugReportCallbackEXT || fvkCreateDebugReportCallbackEXT(
 		instance, &debug_information, nullptr, &debug_callback) != VK_SUCCESS)
-		error("Could not initialize Vulkan debugging.");
+		Core::error("Could not initialize Vulkan debugging.");
 }
 
-void Vulkan::destroy_debug_callback(VkInstance instance, VkDebugReportCallbackEXT callback,
+void Oreginum::Vulkan::destroy_debug_callback(VkInstance instance, VkDebugReportCallbackEXT callback,
 	const VkAllocationCallbacks *allocator)
 {
 	auto fvkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)
@@ -155,7 +155,7 @@ void Vulkan::destroy_debug_callback(VkInstance instance, VkDebugReportCallbackEX
 	fvkDestroyDebugReportCallbackEXT(instance, callback, allocator);
 }
 
-void Vulkan::create_surface()
+void Oreginum::Vulkan::create_surface()
 {
 	VkWin32SurfaceCreateInfoKHR surface_information{};
 	surface_information.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -165,10 +165,10 @@ void Vulkan::create_surface()
 	surface_information.hwnd = WINDOW.get();
 
 	if(vkCreateWin32SurfaceKHR(instance, &surface_information, nullptr, &surface) != VK_SUCCESS)
-		error("Could not create Vulkan surface.");
+		Core::error("Could not create Vulkan surface.");
 }
 
-void Vulkan::get_gpu_information(const VkPhysicalDevice& gpu)
+void Oreginum::Vulkan::get_gpu_information(const VkPhysicalDevice& gpu)
 {
 	uint32_t queue_family_count{};
 	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queue_family_count, nullptr);
@@ -187,7 +187,7 @@ void Vulkan::get_gpu_information(const VkPhysicalDevice& gpu)
 	}
 }
 
-void Vulkan::get_swapchain_information(const VkPhysicalDevice& gpu)
+void Oreginum::Vulkan::get_swapchain_information(const VkPhysicalDevice& gpu)
 {
 	vkGetPhysicalDeviceProperties(gpu, &gpu_properties);
 	vkGetPhysicalDeviceFeatures(gpu, &gpu_features);
@@ -207,7 +207,7 @@ void Vulkan::get_swapchain_information(const VkPhysicalDevice& gpu)
 		&present_mode_count, swapchain_present_modes.data());
 }
 
-void Vulkan::select_gpu()
+void Oreginum::Vulkan::select_gpu()
 {
 	uint32_t gpu_count{};
 	vkEnumeratePhysicalDevices(instance, &gpu_count, nullptr);
@@ -254,12 +254,12 @@ void Vulkan::select_gpu()
 		rated_gpus.insert({rating, g});
 	}
 
-	if(rated_gpus.empty()) error("Could not find a GPU that supports Vulkan sufficiently.");
+	if(rated_gpus.empty()) Core::error("Could not find a GPU that supports Vulkan sufficiently.");
 	gpu = rated_gpus.begin()->second;
 	get_gpu_information(gpu);
 }
 
-void Vulkan::create_device()
+void Oreginum::Vulkan::create_device()
 {
 	std::vector<VkDeviceQueueCreateInfo> queue_informations;
 	std::set<uint32_t> unique_queues{graphics_queue_index, present_queue_index};
@@ -283,13 +283,13 @@ void Vulkan::create_device()
 	device_information.ppEnabledExtensionNames = gpu_extensions.data();
 
 	if(vkCreateDevice(gpu, &device_information, nullptr, &device) != VK_SUCCESS)
-		error("Could not create a Vulkan device.");
+		Core::error("Could not create a Vulkan device.");
 
 	vkGetDeviceQueue(device, graphics_queue_index, NULL, &graphics_queue);
 	vkGetDeviceQueue(device, present_queue_index, NULL, &present_queue);
 }
 
-void Vulkan::create_swapchain()
+void Oreginum::Vulkan::create_swapchain()
 {
 	VkSwapchainKHR new_swapchain;
 	get_swapchain_information(gpu);
@@ -319,7 +319,7 @@ void Vulkan::create_swapchain()
 	swapchain_information.clipped = VK_TRUE;
 	swapchain_information.oldSwapchain = swapchain;
 	if(vkCreateSwapchainKHR(device, &swapchain_information, nullptr, &new_swapchain) != VK_SUCCESS)
-		error("Could not create Vulkan swapchain.");
+		Core::error("Could not create Vulkan swapchain.");
 	*swapchain.replace() = new_swapchain;
 
 	vkGetSwapchainImagesKHR(device, swapchain, &image_count, nullptr);
@@ -327,7 +327,7 @@ void Vulkan::create_swapchain()
 	vkGetSwapchainImagesKHR(device, swapchain, &image_count, swapchain_images.data());
 }
 
-void Vulkan::create_image_views()
+void Oreginum::Vulkan::create_image_views()
 {
 	swapchain_image_views.resize(swapchain_images.size(),
 		Vulkan_Deleter<VkImageView>{device, vkDestroyImageView});
@@ -336,7 +336,7 @@ void Vulkan::create_image_views()
 			VK_IMAGE_ASPECT_COLOR_BIT, swapchain_image_views[i]);
 }
 
-void Vulkan::create_render_pass()
+void Oreginum::Vulkan::create_render_pass()
 {
 	VkAttachmentDescription color_attachment{};
 	color_attachment.format = VK_FORMAT_B8G8R8A8_UNORM;
@@ -392,13 +392,13 @@ void Vulkan::create_render_pass()
 	pass_information.pDependencies = &dependency;
 
 	if(vkCreateRenderPass(device, &pass_information, nullptr, &render_pass) != VK_SUCCESS)
-		error("Could not create Vulkan render pass.");
+		Core::error("Could not create Vulkan render pass.");
 }
 
-Vulkan_Deleter<VkShaderModule> Vulkan::create_shader(const std::string& shader)
+Oreginum::Vulkan_Deleter<VkShaderModule> Oreginum::Vulkan::create_shader(const std::string& shader)
 {
 	std::ifstream file{"Resources/Shaders/"+shader+".spv", std::ios::ate | std::ios::binary};
-	if(!file.is_open()) error("Could not open shader \""+shader+"\".");
+	if(!file.is_open()) Core::error("Could not open shader \""+shader+"\".");
 	size_t size{static_cast<size_t>(file.tellg())};
 	file.seekg(0);
 	std::vector<char> data(size);
@@ -412,12 +412,12 @@ Vulkan_Deleter<VkShaderModule> Vulkan::create_shader(const std::string& shader)
 
 	Vulkan_Deleter<VkShaderModule> module{device, vkDestroyShaderModule};
 	if(vkCreateShaderModule(device, &shader_information, nullptr,
-		&module) != VK_SUCCESS) error("Could not create shader \""+shader+"\".");
+		&module) != VK_SUCCESS) Core::error("Could not create shader \""+shader+"\".");
 
 	return module;
 }
 
-void Vulkan::create_descriptor_set_layout()
+void Oreginum::Vulkan::create_descriptor_set_layout()
 {
 	VkDescriptorSetLayoutBinding uniform_buffer_object_layout_binding{};
 	uniform_buffer_object_layout_binding.binding = 0;
@@ -442,10 +442,10 @@ void Vulkan::create_descriptor_set_layout()
 
 	if(vkCreateDescriptorSetLayout(device, &layout_information, nullptr,
 		descriptor_set_layout.replace()) != VK_SUCCESS)
-		error("Could not create Vulkan descriptor set layout.");
+		Core::error("Could not create Vulkan descriptor set layout.");
 }
 
-void Vulkan::create_graphics_pipeline()
+void Oreginum::Vulkan::create_graphics_pipeline()
 {
 	Vulkan_Deleter<VkShaderModule> primitive_vertex{create_shader("Primitive Vertex")};
 	Vulkan_Deleter<VkShaderModule> primitive_fragment{create_shader("Primitive Fragment")};
@@ -570,7 +570,7 @@ void Vulkan::create_graphics_pipeline()
 	pipeline_layout_information.pPushConstantRanges = 0;
 
 	if(vkCreatePipelineLayout(device, &pipeline_layout_information, nullptr, &pipeline_layout)
-		!= VK_SUCCESS) error("Could not create a Vulkan graphics pipeline layout.");
+		!= VK_SUCCESS) Core::error("Could not create a Vulkan graphics pipeline layout.");
 
 	VkGraphicsPipelineCreateInfo pipeline_information{};
 	pipeline_information.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -592,10 +592,10 @@ void Vulkan::create_graphics_pipeline()
 
 	if(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
 		&pipeline_information, nullptr, &pipeline) != VK_SUCCESS)
-		error("Could not create a Vulkan graphics pipeline.");
+		Core::error("Could not create a Vulkan graphics pipeline.");
 }
 
-void Vulkan::create_framebuffers()
+void Oreginum::Vulkan::create_framebuffers()
 {
 	framebuffers.resize(swapchain_image_views.size(),
 		Vulkan_Deleter<VkFramebuffer>{device, vkDestroyFramebuffer});
@@ -613,21 +613,21 @@ void Vulkan::create_framebuffers()
 		framebuffer_information.layers = 1;
 
 		if(vkCreateFramebuffer(device, &framebuffer_information, nullptr,
-			&framebuffers[i]) != VK_SUCCESS) error("Could not create a Vulkan framebuffer.");
+			&framebuffers[i]) != VK_SUCCESS) Core::error("Could not create a Vulkan framebuffer.");
 	}
 }
 
-void Vulkan::create_command_pool()
+void Oreginum::Vulkan::create_command_pool()
 {
 	VkCommandPoolCreateInfo pool_information{};
 	pool_information.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	pool_information.queueFamilyIndex = graphics_queue_index;
 	pool_information.flags = 0;
 	if(vkCreateCommandPool(device, &pool_information, nullptr, &command_pool)
-		!= VK_SUCCESS) error("Could not create a Vulkan command pool.");
+		!= VK_SUCCESS) Core::error("Could not create a Vulkan command pool.");
 }
 
-void Vulkan::create_image(uint32_t width, uint32_t height, VkFormat format,
+void Oreginum::Vulkan::create_image(uint32_t width, uint32_t height, VkFormat format,
 	VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
 	Vulkan_Deleter<VkImage>& texture, Vulkan_Deleter<VkDeviceMemory>& texture_memory)
 {
@@ -646,7 +646,7 @@ void Vulkan::create_image(uint32_t width, uint32_t height, VkFormat format,
 	image_information.samples = VK_SAMPLE_COUNT_1_BIT;
 	image_information.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	if(vkCreateImage(device, &image_information, nullptr, texture.replace()) != VK_SUCCESS)
-		error("Could not create a Vulkan image.");
+		Core::error("Could not create a Vulkan image.");
 
 	VkMemoryRequirements memory_requirements;
 	vkGetImageMemoryRequirements(device, texture, &memory_requirements);
@@ -656,11 +656,11 @@ void Vulkan::create_image(uint32_t width, uint32_t height, VkFormat format,
 	allocation_information.memoryTypeIndex =
 		find_memory(memory_requirements.memoryTypeBits, properties);
 	if(vkAllocateMemory(device, &allocation_information, nullptr, texture_memory.replace())
-		!= VK_SUCCESS) error("Could not allocate Vulkan image memory.");
+		!= VK_SUCCESS) Core::error("Could not allocate Vulkan image memory.");
 	vkBindImageMemory(device, texture, texture_memory, 0);
 }
 
-void Vulkan::create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect,
+void Oreginum::Vulkan::create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect,
 	Vulkan_Deleter<VkImageView>& image_view)
 {
 	VkImageViewCreateInfo image_view_information{};
@@ -675,10 +675,10 @@ void Vulkan::create_image_view(VkImage image, VkFormat format, VkImageAspectFlag
 	image_view_information.subresourceRange.layerCount = 1;
 
 	if(vkCreateImageView(device, &image_view_information, nullptr, image_view.replace())
-		!= VK_SUCCESS) error("Could not create a Vulkan image view.");
+		!= VK_SUCCESS) Core::error("Could not create a Vulkan image view.");
 }
 
-VkCommandBuffer Vulkan::begin_single_time_commands()
+VkCommandBuffer Oreginum::Vulkan::begin_single_time_commands()
 {
 	VkCommandBuffer command_buffer;
 	VkCommandBufferAllocateInfo command_buffer_allocation_information{};
@@ -696,7 +696,7 @@ VkCommandBuffer Vulkan::begin_single_time_commands()
 	return command_buffer;
 }
 
-void Vulkan::end_single_time_commands(VkCommandBuffer command_buffer)
+void Oreginum::Vulkan::end_single_time_commands(VkCommandBuffer command_buffer)
 {
 	vkEndCommandBuffer(command_buffer);
 
@@ -711,7 +711,7 @@ void Vulkan::end_single_time_commands(VkCommandBuffer command_buffer)
 	vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 }
 
-void Vulkan::transition_image_layout(VkImage texture, VkFormat format,
+void Oreginum::Vulkan::transition_image_layout(VkImage texture, VkFormat format,
 	VkImageLayout old_layout, VkImageLayout new_layout)
 {
 	VkCommandBuffer command_buffer{begin_single_time_commands()};
@@ -753,7 +753,7 @@ void Vulkan::transition_image_layout(VkImage texture, VkFormat format,
 		texture_memory_barrier.srcAccessMask = NULL,
 		texture_memory_barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
 			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-	else error("Could not complete a Vulkan texture layout transition.");
+	else Core::error("Could not complete a Vulkan texture layout transition.");
 
 	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &texture_memory_barrier);
@@ -761,7 +761,7 @@ void Vulkan::transition_image_layout(VkImage texture, VkFormat format,
 	end_single_time_commands(command_buffer);
 }
 
-void Vulkan::create_depth_resources()
+void Oreginum::Vulkan::create_depth_resources()
 {
 	create_image(swapchain_extent.width, swapchain_extent.height, DEPTH_FORMAT,
 		VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -772,7 +772,7 @@ void Vulkan::create_depth_resources()
 		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
-void Vulkan::copy_texture(VkImage source_image, VkImage destination_image,
+void Oreginum::Vulkan::copy_texture(VkImage source_image, VkImage destination_image,
 	uint32_t width, uint32_t height)
 {
 	VkCommandBuffer command_buffer{begin_single_time_commands()};
@@ -798,12 +798,12 @@ void Vulkan::copy_texture(VkImage source_image, VkImage destination_image,
 	end_single_time_commands(command_buffer);
 }
 
-void Vulkan::create_texture(const std::string& path)
+void Oreginum::Vulkan::create_texture(const std::string& path)
 {
 	int width, height, channels;
 	stbi_uc *data{stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha)};
 	VkDeviceSize size{static_cast<VkDeviceSize>(width*height*4)};
-	if(!data) error("Could not load the image \""+path+"\".");
+	if(!data) Core::error("Could not load the image \""+path+"\".");
 
 	Vulkan_Deleter<VkImage> staging{device, vkDestroyImage};
 	Vulkan_Deleter<VkDeviceMemory> staging_memory{device, vkFreeMemory};
@@ -830,10 +830,10 @@ void Vulkan::create_texture(const std::string& path)
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-void Vulkan::create_texture_view()
+void Oreginum::Vulkan::create_texture_view()
 { create_image_view(texture, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, texture_view); }
 
-void Vulkan::create_texture_sampler()
+void Oreginum::Vulkan::create_texture_sampler()
 {
 	VkSamplerCreateInfo sampler_information{};
 	sampler_information.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -851,20 +851,20 @@ void Vulkan::create_texture_sampler()
 	sampler_information.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
 	if(vkCreateSampler(device, &sampler_information, nullptr, texture_sampler.replace())
-		!= VK_SUCCESS) error("Could not create a Vulkan texture sampler.");
+		!= VK_SUCCESS) Core::error("Could not create a Vulkan texture sampler.");
 }
 
-uint32_t Vulkan::find_memory(uint32_t type, VkMemoryPropertyFlags properties)
+uint32_t Oreginum::Vulkan::find_memory(uint32_t type, VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties memory_properties;
 	vkGetPhysicalDeviceMemoryProperties(gpu, &memory_properties);
 	for(uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
 		if((type & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags
 			& properties) == properties) return i;
-	error("Your GPU ran out of memory.");
+	Core::error("Your GPU ran out of memory.");
 }
 
-void Vulkan::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage,
+void Oreginum::Vulkan::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage,
 	VkMemoryPropertyFlags properties, Vulkan_Deleter<VkBuffer>& buffer,
 	Vulkan_Deleter<VkDeviceMemory>& buffer_memory)
 {
@@ -875,7 +875,7 @@ void Vulkan::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage,
 	buffer_information.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	if(vkCreateBuffer(device, &buffer_information, nullptr, buffer.replace()) != VK_SUCCESS)
-		error("Could not a create Vulkan buffer.");
+		Core::error("Could not a create Vulkan buffer.");
 
 	VkMemoryRequirements memory_requirements;
 	vkGetBufferMemoryRequirements(device, buffer, &memory_requirements);
@@ -885,13 +885,14 @@ void Vulkan::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage,
 	allocation_information.allocationSize = memory_requirements.size;
 	allocation_information.memoryTypeIndex =
 		find_memory(memory_requirements.memoryTypeBits, properties);
-	if(vkAllocateMemory(device, &allocation_information, nullptr,
-		buffer_memory.replace()) != VK_SUCCESS) error("Could not allocate Vulkan buffer memory.");
+	if(vkAllocateMemory(device, &allocation_information, nullptr, buffer_memory.replace()) !=
+		VK_SUCCESS) Core::error("Could not allocate Vulkan buffer memory.");
 
 	vkBindBufferMemory(device, buffer, buffer_memory, 0);
 }
 
-void Vulkan::copy_buffer(VkBuffer source_buffer, VkBuffer destination_buffer, VkDeviceSize size)
+void Oreginum::Vulkan::copy_buffer(VkBuffer source_buffer,
+	VkBuffer destination_buffer, VkDeviceSize size)
 {
 	VkCommandBuffer command_buffer{begin_single_time_commands()};
 	VkBufferCopy copy_region{};
@@ -900,7 +901,7 @@ void Vulkan::copy_buffer(VkBuffer source_buffer, VkBuffer destination_buffer, Vk
 	end_single_time_commands(command_buffer);
 }
 
-void Vulkan::create_vertex_buffer()
+void Oreginum::Vulkan::create_vertex_buffer()
 {
 	VkDeviceSize buffer_size{sizeof(vertices[0])*vertices.size()};
 
@@ -918,7 +919,7 @@ void Vulkan::create_vertex_buffer()
 	copy_buffer(staging_buffer, vertex_buffer, buffer_size);
 }
 
-void Vulkan::create_index_buffer()
+void Oreginum::Vulkan::create_index_buffer()
 {
 	VkDeviceSize buffer_size{sizeof(indices[0])*indices.size()};
 	Vulkan_Deleter<VkBuffer> staging_buffer{device, vkDestroyBuffer};
@@ -937,7 +938,7 @@ void Vulkan::create_index_buffer()
 	copy_buffer(staging_buffer, index_buffer, buffer_size);
 }
 
-void Vulkan::create_uniform_buffer()
+void Oreginum::Vulkan::create_uniform_buffer()
 {
 	create_buffer(uniform_buffer_object_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -947,7 +948,7 @@ void Vulkan::create_uniform_buffer()
 		uniform_buffer, uniform_buffer_memory);
 }
 
-void Vulkan::create_descriptor_pool()
+void Oreginum::Vulkan::create_descriptor_pool()
 {
 	std::array<VkDescriptorPoolSize, 2> descriptor_pool_sizes{};
 	descriptor_pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -962,10 +963,10 @@ void Vulkan::create_descriptor_pool()
 	pool_information.maxSets = 1;
 
 	if(vkCreateDescriptorPool(device, &pool_information, nullptr, descriptor_pool.replace())
-		!= VK_SUCCESS) error("Could not create a Vulkan descriptor pool.");
+		!= VK_SUCCESS) Core::error("Could not create a Vulkan descriptor pool.");
 }
 
-void Vulkan::create_descriptor_set()
+void Oreginum::Vulkan::create_descriptor_set()
 {
 	VkDescriptorSetLayout descriptor_set_layouts[]{descriptor_set_layout};
 	VkDescriptorSetAllocateInfo allocation_information{};
@@ -975,7 +976,7 @@ void Vulkan::create_descriptor_set()
 	allocation_information.pSetLayouts = descriptor_set_layouts;
 
 	if(vkAllocateDescriptorSets(device, &allocation_information, &descriptor_set) != VK_SUCCESS)
-		error("Could not allocate a Vulkan descriptor set.");
+		Core::error("Could not allocate a Vulkan descriptor set.");
 
 	VkDescriptorBufferInfo descriptor_buffer_information{};
 	descriptor_buffer_information.buffer = uniform_buffer;
@@ -1008,7 +1009,7 @@ void Vulkan::create_descriptor_set()
 		descriptor_set_writes.data(), 0, nullptr);
 }
 
-void Vulkan::create_command_buffers()
+void Oreginum::Vulkan::create_command_buffers()
 {
 	command_buffers.resize(framebuffers.size());
 	VkCommandBufferAllocateInfo buffer_allocation_information{};
@@ -1017,7 +1018,7 @@ void Vulkan::create_command_buffers()
 	buffer_allocation_information.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	buffer_allocation_information.commandBufferCount = static_cast<uint32_t>(command_buffers.size());
 	if(vkAllocateCommandBuffers(device, &buffer_allocation_information, command_buffers.data())
-		!= VK_SUCCESS) error("Could not create Vulkan command buffers.");
+		!= VK_SUCCESS) Core::error("Could not create Vulkan command buffers.");
 
 	for(size_t i{}; i < command_buffers.size(); i++)
 	{
@@ -1052,21 +1053,21 @@ void Vulkan::create_command_buffers()
 
 		vkCmdEndRenderPass(command_buffers[i]);
 		if(vkEndCommandBuffer(command_buffers[i]) != VK_SUCCESS)
-			error("Could not record commands to a Vulkan command buffer.");
+			Core::error("Could not record commands to a Vulkan command buffer.");
 	}
 }
 
-void Vulkan::create_semaphores()
+void Oreginum::Vulkan::create_semaphores()
 {
 	VkSemaphoreCreateInfo semaphore_information{};
 	semaphore_information.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	if(vkCreateSemaphore(device, &semaphore_information, nullptr, &image_available_semaphore)
 		!= VK_SUCCESS || vkCreateSemaphore(device, &semaphore_information, nullptr,
 			&render_finished_semaphore) != VK_SUCCESS)
-		error("Could not create a Vulkan semaphore.");
+		Core::error("Could not create a Vulkan semaphore.");
 }
 
-void Vulkan::recreate_swapchain()
+void Oreginum::Vulkan::recreate_swapchain()
 {
 	vkDeviceWaitIdle(device);
 	create_swapchain();
@@ -1078,7 +1079,7 @@ void Vulkan::recreate_swapchain()
 	create_command_buffers();
 }
 
-void Vulkan::update_uniform_buffer()
+void Oreginum::Vulkan::update_uniform_buffer()
 {
 	void* data;
 	vkMapMemory(device, uniform_staging_buffer_memory, 0, uniform_buffer_object_size, 0, &data);

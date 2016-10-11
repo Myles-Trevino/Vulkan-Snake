@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Error.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -27,15 +24,18 @@
     <ClCompile Include="src\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Core.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Error.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Vulkan.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Window.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Core.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
