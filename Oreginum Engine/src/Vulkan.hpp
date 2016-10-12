@@ -4,6 +4,7 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <Vulkan/vulkan.h>
 #include "Window.hpp"
+#include "Model.hpp"
 
 namespace Oreginum
 {
@@ -36,11 +37,8 @@ namespace Oreginum
 		Vulkan(const Window& window, const std::string& program_title,
 			const glm::ivec3& program_version, const std::string& engine_title,
 			const glm::ivec3& engine_version, const glm::ivec3& vulkan_version,
-			const std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions,
-			const std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions,
-			const std::vector<float>& vertices, const std::vector<uint16_t>& indices,
-			const void *const uniform_buffer_object, const size_t uniform_buffer_object_size,
-			const std::string& texture, bool debug = false);
+			const Model& model, const void *const uniform_buffer_object,
+			const size_t uniform_buffer_object_size, bool debug = false);
 		~Vulkan() { vkDeviceWaitIdle(device); }
 
 		void update_uniform_buffer();
@@ -54,10 +52,7 @@ namespace Oreginum
 		static constexpr VkFormat DEPTH_FORMAT{VK_FORMAT_D32_SFLOAT};
 		const Window& WINDOW;
 		const bool DEBUG;
-		const std::vector<float>& vertices;
-		const std::vector<uint16_t>& indices;
-		const std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions;
-		const std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions;
+		const Model& model;
 		const void *const uniform_buffer_object;
 		const size_t uniform_buffer_object_size;
 
@@ -142,7 +137,7 @@ namespace Oreginum
 		void create_depth_resources();
 		void copy_texture(VkImage source_image, VkImage destination_image,
 			uint32_t width, uint32_t height);
-		void create_texture(const std::string& path);
+		void create_texture();
 		void create_texture_view();
 		void create_texture_sampler();
 		uint32_t find_memory(uint32_t type, VkMemoryPropertyFlags properties);

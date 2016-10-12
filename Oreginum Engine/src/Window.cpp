@@ -17,8 +17,6 @@ LRESULT CALLBACK Oreginum::Window::window_callback(HWND window, UINT message,
 Oreginum::Window::Window(const std::string& title, const glm::ivec2& resolution,
 	HINSTANCE instance, bool debug) : TITLE(title), resolution(resolution), instance(instance)
 {
-	timeBeginPeriod(1);
-
 	if(debug)
 	{
 		AllocConsole();

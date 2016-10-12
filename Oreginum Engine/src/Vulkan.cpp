@@ -11,14 +11,9 @@
 Oreginum::Vulkan::Vulkan(const Window& window, const std::string& program_title,
 	const glm::ivec3& program_version, const std::string& engine_title,
 	const glm::ivec3& engine_version, const glm::ivec3& vulkan_version,
-	const std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions,
-	const std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions,
-	const std::vector<float>& vertices, const std::vector<uint16_t>& indices,
-	const void *const uniform_buffer_object, const size_t uniform_buffer_object_size,
-	const std::string& texture, bool debug)
-	: WINDOW(window), DEBUG(debug), vertex_binding_descriptions(vertex_binding_descriptions),
-	vertex_attribute_descriptions(vertex_attribute_descriptions), vertices(vertices),
-	indices(indices), uniform_buffer_object(uniform_buffer_object),
+	const Model& model, const void *const uniform_buffer_object,
+	const size_t uniform_buffer_object_size, bool debug)
+	: WINDOW(window), DEBUG(debug), model(model), uniform_buffer_object(uniform_buffer_object),
 	uniform_buffer_object_size(uniform_buffer_object_size)
 {
 	create_instance(window, program_title, program_version,
@@ -35,7 +30,7 @@ Oreginum::Vulkan::Vulkan(const Window& window, const std::string& program_title,
 	create_command_pool();
 	create_depth_resources();
 	create_framebuffers();
-	create_texture(texture);
+	create_texture();
 	create_texture_view();
 	create_texture_sampler();
 	create_vertex_buffer();
@@ -450,6 +445,15 @@ void Oreginum::Vulkan::create_graphics_pipeline()
 	Vulkan_Deleter<VkShaderModule> primitive_vertex{create_shader("Primitive Vertex")};
 	Vulkan_Deleter<VkShaderModule> primitive_fragment{create_shader("Primitive Fragment")};
 
+	std::vector<VkVertexInputBindingDescription> vertex_binding_descriptions{1};
+	vertex_binding_descriptions[0].stride = sizeof(float)*5;
+	vertex_binding_descriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	std::vector<VkVertexInputAttributeDescription> vertex_attribute_descriptions{2};
+	vertex_attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	vertex_attribute_descriptions[1].location = 1;
+	vertex_attribute_descriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
+	vertex_attribute_descriptions[1].offset = sizeof(float)*3;
+
 	VkPipelineShaderStageCreateInfo vertex_shader_information{};
 	vertex_shader_information.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vertex_shader_information.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -798,12 +802,14 @@ void Oreginum::Vulkan::copy_texture(VkImage source_image, VkImage destination_im
 	end_single_time_commands(command_buffer);
 }
 
-void Oreginum::Vulkan::create_texture(const std::string& path)
+void Oreginum::Vulkan::create_texture()
 {
 	int width, height, channels;
-	stbi_uc *data{stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha)};
+	stbi_uc *data{stbi_load(model.get_texture().c_str(),
+		&width, &height, &channels, STBI_rgb_alpha)};
+	if(!data) Core::error("Could not load the image \""+model.get_texture()+"\".");
+
 	VkDeviceSize size{static_cast<VkDeviceSize>(width*height*4)};
-	if(!data) Core::error("Could not load the image \""+path+"\".");
 
 	Vulkan_Deleter<VkImage> staging{device, vkDestroyImage};
 	Vulkan_Deleter<VkDeviceMemory> staging_memory{device, vkFreeMemory};
@@ -903,7 +909,7 @@ void Oreginum::Vulkan::copy_buffer(VkBuffer source_buffer,
 
 void Oreginum::Vulkan::create_vertex_buffer()
 {
-	VkDeviceSize buffer_size{sizeof(vertices[0])*vertices.size()};
+	VkDeviceSize buffer_size{sizeof(model.get_vertices()[0])*model.get_vertices().size()};
 
 	Vulkan_Deleter<VkBuffer> staging_buffer{device, vkDestroyBuffer};
 	Vulkan_Deleter<VkDeviceMemory> staging_buffer_memory{device, vkFreeMemory};
@@ -911,7 +917,7 @@ void Oreginum::Vulkan::create_vertex_buffer()
 		| VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging_buffer, staging_buffer_memory);
 	void *data;
 	vkMapMemory(device, staging_buffer_memory, 0, buffer_size, 0, &data);
-	memcpy(data, vertices.data(), (size_t)buffer_size);
+	memcpy(data, model.get_vertices().data(), (size_t)buffer_size);
 	vkUnmapMemory(device, staging_buffer_memory);
 
 	create_buffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -921,7 +927,7 @@ void Oreginum::Vulkan::create_vertex_buffer()
 
 void Oreginum::Vulkan::create_index_buffer()
 {
-	VkDeviceSize buffer_size{sizeof(indices[0])*indices.size()};
+	VkDeviceSize buffer_size{sizeof(model.get_indices()[0])*model.get_indices().size()};
 	Vulkan_Deleter<VkBuffer> staging_buffer{device, vkDestroyBuffer};
 	Vulkan_Deleter<VkDeviceMemory> staging_buffer_memory{device, vkFreeMemory};
 	create_buffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -930,7 +936,7 @@ void Oreginum::Vulkan::create_index_buffer()
 
 	void *data;
 	vkMapMemory(device, staging_buffer_memory, 0, buffer_size, 0, &data);
-	memcpy(data, indices.data(), (size_t)buffer_size);
+	memcpy(data, model.get_indices().data(), (size_t)buffer_size);
 	vkUnmapMemory(device, staging_buffer_memory);
 
 	create_buffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -1049,7 +1055,8 @@ void Oreginum::Vulkan::create_command_buffers()
 		vkCmdBindIndexBuffer(command_buffers[i], index_buffer, 0, VK_INDEX_TYPE_UINT16);
 		vkCmdBindDescriptorSets(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
 			pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
-		vkCmdDrawIndexed(command_buffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(command_buffers[i],
+			static_cast<uint32_t>(model.get_indices().size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(command_buffers[i]);
 		if(vkEndCommandBuffer(command_buffers[i]) != VK_SUCCESS)
