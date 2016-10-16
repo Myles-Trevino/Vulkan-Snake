@@ -1,22 +1,36 @@
 #include "Core.hpp"
 #include "Window.hpp"
 
-LRESULT CALLBACK Oreginum::Window::window_callback(HWND window, UINT message,
-	WPARAM information, LPARAM informaton_long)
+namespace
 {
-	switch(message)
+	std::string title;
+	glm::ivec2 resolution;
+	HINSTANCE instance;
+	FILE *stream;
+	HWND window;
+	bool resized;
+	bool closed;
+
+	LRESULT CALLBACK window_callback(HWND window, UINT message,
+		WPARAM message_information, LPARAM message_informaton_long)
 	{
-	case WM_CLOSE: DestroyWindow(window); break;
-	case WM_DESTROY: PostQuitMessage(0); break;
-	case WM_PAINT: ValidateRect(window, NULL); break;
-	default: return DefWindowProc(window, message, information, informaton_long);
+		switch(message)
+		{
+		case WM_DESTROY: closed = true; break;
+		default: return DefWindowProc(window, message,
+			message_information, message_informaton_long);
+		}
+		return NULL;
 	}
-	return NULL;
 }
 
-Oreginum::Window::Window(const std::string& title, const glm::ivec2& resolution,
-	HINSTANCE instance, bool debug) : TITLE(title), resolution(resolution), instance(instance)
+void Oreginum::Window::initialize(const std::string& title,
+	const glm::ivec2& resolution, bool debug)
 {
+	::title = title;
+	::resolution = resolution;
+	::instance = GetModuleHandle(NULL);
+
 	if(debug)
 	{
 		AllocConsole();
@@ -39,28 +53,37 @@ Oreginum::Window::Window(const std::string& title, const glm::ivec2& resolution,
 	window_information.hIconSm = LoadIcon(window_information.hInstance, IDI_APPLICATION);
 	if(!RegisterClassEx(&window_information)) Core::error("Could not register window.");
 
-	screen_resolution = {GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
 	window = CreateWindow(title.c_str(), title.c_str(), WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS |
-		WS_CLIPCHILDREN, screen_resolution.x/2-resolution.x/2, screen_resolution.y/2-
-		resolution.y/2, resolution.x, resolution.y, NULL, NULL, instance, NULL);
+		WS_CLIPCHILDREN, Core::get_screen_resolution().x/2-resolution.x/2,
+		Core::get_screen_resolution().y/2-resolution.y/2, resolution.x, resolution.y,
+		NULL, NULL, instance, NULL);
 	if(!window) Core::error("Could not create window.");
 	ShowWindow(window, SW_SHOW);
 }
 
-bool Oreginum::Window::update()
+void Oreginum::Window::update()
 {
 	static MSG message;
-	while(PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
-	{
-		if(message.message == WM_QUIT) return false;
-		TranslateMessage(&message);
-		DispatchMessage(&message);
-	}
+	while(PeekMessage(&message, NULL, 0, BM_SETDONTCLICK, PM_REMOVE)) DispatchMessage(&message);
+	while(PeekMessage(&message, NULL, WM_UNICHAR, NULL, PM_REMOVE)) DispatchMessage(&message);
 
-	RECT rect;
-	GetClientRect(window, &rect);
+	RECT rectangle;
+	GetClientRect(window, &rectangle);
 	glm::ivec2 old_resolution{resolution};
-	resolution = {rect.right-rect.left, rect.bottom-rect.top};
+	resolution = {rectangle.right-rectangle.left, rectangle.bottom-rectangle.top};
 	resized = (old_resolution != resolution);
-	return true;
 }
+
+HINSTANCE Oreginum::Window::get_instance(){ return instance; }
+
+HWND Oreginum::Window::get(){ return window; }
+
+std::string Oreginum::Window::get_title(){ return title; }
+
+glm::ivec2 Oreginum::Window::get_resolution(){ return resolution; };
+
+bool Oreginum::Window::was_closed(){ return closed; }
+
+bool Oreginum::Window::was_resized(){ return resized; }
+
+bool Oreginum::Window::is_visible(){ return (resolution.x > 0 && resolution.y > 0); }

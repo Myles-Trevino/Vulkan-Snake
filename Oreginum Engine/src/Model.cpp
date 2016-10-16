@@ -3,12 +3,11 @@
 #include <Assimp/postprocess.h>
 #include "Core.hpp"
 #include "Model.hpp"
-#include <iostream>
 
 Oreginum::Model::Model(const std::string& model)
 {
 	Assimp::Importer importer;
-	const aiScene *const scene{importer.ReadFile(model, aiProcess_Triangulate)};
+	const aiScene *const scene{importer.ReadFile(model, aiProcess_FlipUVs)};
 	if(!scene) Oreginum::Core::error("Could not load model \""+model+"\".");
 
 	aiString texture;
@@ -21,7 +20,8 @@ Oreginum::Model::Model(const std::string& model)
 	{
 		aiVector3D& vertex{scene->mMeshes[0]->mVertices[i]};
 		aiVector3D& uv{scene->mMeshes[0]->mTextureCoords[0][i]};
-		vertices[i] = {vertex.x, vertex.y, vertex.z, uv.x, uv.y};
+		aiVector3D& normal{scene->mMeshes[0]->mNormals[i]};
+		vertices[i] = {vertex.x, vertex.y, vertex.z, normal.x, normal.y, normal.z, uv.x, uv.y};
 	}
 
 	indices.resize(scene->mMeshes[0]->mNumFaces*3);
@@ -29,7 +29,7 @@ Oreginum::Model::Model(const std::string& model)
 	{
 		aiFace& face{scene->mMeshes[0]->mFaces[i]};
 		if(face.mNumIndices != 3)
-			Oreginum::Core::error("The mesh \""+model+"\" is not properly triangulated.");
+			Oreginum::Core::error("The model \""+model+"\" is not properly triangulated.");
 		indices[j] = face.mIndices[0];
 		indices[j+1] = face.mIndices[1];
 		indices[j+2] = face.mIndices[2];

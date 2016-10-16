@@ -1,13 +1,12 @@
 #pragma once
 #include <vector>
-#include <GLM/glm.hpp>
 
 namespace Oreginum
 {
 	class Model
 	{
 	public:
-		struct Vertex{ float x, y, z, u, v; };
+		struct Vertex{ float x, y, z, nx, ny, nz, u, v; };
 
 		Model(const std::string& model);
 
