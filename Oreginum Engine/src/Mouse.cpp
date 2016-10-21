@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include "Core.hpp"
+#include "Window.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 
@@ -7,31 +8,52 @@ namespace
 {
 	glm::ivec2 position;
 	glm::ivec2 delta;
-	bool visible;
+	bool locked;
+	bool pressed[3];
 
-	void center(){ SetCursorPos(Oreginum::Core::get_screen_resolution().x/2,
-		Oreginum::Core::get_screen_resolution().y/2); }
+	glm::ivec2 get_window_center()
+	{ return Oreginum::Window::get_position()+Oreginum::Window::get_resolution()/2; }
+
+	void center(){ SetCursorPos(get_window_center().x, get_window_center().y); }
+
+	void lock(){ ShowCursor(false), center(), locked = true; }
+
+	void free(){ ShowCursor(true), locked = false; }
 }
 
-void Oreginum::Mouse::initialize()
-{
-	ShowCursor(false);
-	center();
-}
+void Oreginum::Mouse::initialize(){ lock(); }
+
+void Oreginum::Mouse::destroy(){ free(); }
 
 void Oreginum::Mouse::update()
 {
-	if(Keyboard::was_pressed(Key::ESC))
-	{
-		if(visible) visible = false, ShowCursor(false), center();
-		else visible = true, ShowCursor(true);
-	}
-	if(visible) return;
+	for(bool& b : pressed) b = false;
+
+	if(Keyboard::was_pressed(Key::ESC)) if(locked) free(); else lock();
+
 	static POINT point{};
 	GetCursorPos(&point);
-	position = {point.x, point.y};
-	delta = position-Core::get_screen_resolution()/2;
-	center();
+	if(locked)
+	{
+		position = {point.x, point.y};
+		delta = position-get_window_center();
+		center();
+	}
+	else
+	{
+		glm::ivec2 previous_position{position};
+		position = {point.x, point.y};
+		delta = position-previous_position;
+	}
 }
 
+void Oreginum::Mouse::set_pressed(Button button, bool pressed){ ::pressed[button] = pressed; }
+
 glm::ivec2 Oreginum::Mouse::get_delta(){ return delta; }
+
+bool Oreginum::Mouse::is_locked(){ return locked; }
+
+bool Oreginum::Mouse::was_pressed(Button button){ return pressed[button]; }
+
+bool Oreginum::Mouse::is_held(Button button)
+{ return (GetAsyncKeyState(button) != 0) && Window::has_focus(); }

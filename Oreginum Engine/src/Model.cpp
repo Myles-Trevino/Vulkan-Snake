@@ -16,7 +16,7 @@ Oreginum::Model::Model(const std::string& model)
 	this->texture = model.substr(0, model.find_last_of("/")+1)+texture.C_Str();
 
 	vertices.resize(scene->mMeshes[0]->mNumVertices);
-	for(int i{}; i < vertices.size(); ++i)
+	for(uint32_t i{}; i < vertices.size(); ++i)
 	{
 		aiVector3D& vertex{scene->mMeshes[0]->mVertices[i]};
 		aiVector3D& uv{scene->mMeshes[0]->mTextureCoords[0][i]};

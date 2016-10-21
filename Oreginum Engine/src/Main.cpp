@@ -5,23 +5,47 @@
 #include "Core.hpp"
 #include "Vulkan.hpp"
 #include "Camera.hpp"
+#include "Keyboard.hpp"
+#include "Mouse.hpp"
+#include <iostream>
+
+/*
+	see if memory needs to be freed on bind failure
+	remove unnecessary variables that are used in vulkan structs specifically vectors
+	Remove {} from structs or delete flags and pnexts
+	See if present queue is needed
+	Look into using multiple queues
+	unoptimized framebuffer per swapchain image
+	unoptimized texture loading?
+*/
 
 int WinMain(HINSTANCE instance, HINSTANCE previous_instance, LPSTR arguments, int show)
 {
+	struct Uniforms{glm::fmat4 model, view, projection; glm::fvec3 camera_position;} uniforms;
+	float vertex_data[]
+	{
+		-.7f, -.7f, 0, 1, 0, 0,
+		-.7f, .7f, 0, 0, 1, 0,
+		.7f, -.7f, 0, 0, 0, 1,
+		.7f, .7f, 0, .3f, .3f, 0,
+	};
+
 	Oreginum::Model model{"Resources/Models/Suzanne/Suzanne.dae"};
-	struct Uniforms{ glm::fmat4 model, view, projection; glm::fvec3 camera_position; } uniforms;
-	Oreginum::Core::initialize("Oreginum Engine Vulkan Test",
-		{900, 900}, &model, &uniforms, sizeof(uniforms), true);
+	Oreginum::Core::initialize("Oreginum Engine Vulkan Test", {900, 900},
+		&vertex_data, sizeof(vertex_data), &uniforms, sizeof(uniforms), true);
 
 	while(Oreginum::Core::update())
 	{
+		/*
 		uniforms.model = glm::translate(glm::mat4{}, glm::fvec3{0, 0, 1.3f})*
-			glm::rotate(glm::mat4{}, Oreginum::Core::get_time(), {0, 1, 0})*
+			glm::rotate(glm::mat4{}, Oreginum::Core::get_time()/3, {0, 1, 0})*
 			glm::rotate(glm::mat4{}, glm::radians(90.0f), {1, 0, 0});
 		uniforms.view = Oreginum::Camera::get_view();
 		uniforms.projection = Oreginum::Camera::get_projection();
 		uniforms.projection[1][1] *= -1;
 		uniforms.camera_position = Oreginum::Camera::get_position();
+		*/
+		if(Oreginum::Keyboard::is_held(Oreginum::Key::A)) std::cout<<"dufjasdkl";
 
 		Oreginum::Vulkan::render();
 	}

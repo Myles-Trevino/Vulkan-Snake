@@ -47,10 +47,11 @@ void Oreginum::Camera::update()
 
 	float velocity{(GetAsyncKeyState(VK_LSHIFT) ? RUN_SPEED : WALK_SPEED)*Core::get_delta()};
 	if(Keyboard::is_held(Key::W)) position += direction*velocity;
-	if(Keyboard::is_held(Key::A)) position -= direction*velocity;
-	if(Keyboard::is_held(Key::S)) position -= right*velocity;
+	if(Keyboard::is_held(Key::S)) position -= direction*velocity;
+	if(Keyboard::is_held(Key::A)) position -= right*velocity;
 	if(Keyboard::is_held(Key::D)) position += right*velocity;
 
+	if(!Window::is_visible()) return;
 	view = glm::lookAt(position, position+direction, world_up);
 	projection = glm::perspective(FOV, Window::get_resolution().x/
 		static_cast<float>(Window::get_resolution().y), NEAR_CLIP, FAR_CLIP);

@@ -10,7 +10,7 @@
 namespace
 {
 	glm::ivec2 screen_resolution;
-	int refresh_rate;
+	uint32_t refresh_rate;
 	float previous_time, delta;
 	float minimum_delta;
 	static double initial_time;
@@ -20,30 +20,33 @@ namespace
 };
 
 void Oreginum::Core::initialize(const std::string& title, const glm::ivec2& resolution,
-	const Model *model, const void *uniform_buffer_object,
+	const void *vertex_data, size_t vertex_data_size, const void *uniform_buffer_object,
 	size_t uniform_buffer_object_size, bool debug)
 {
 	screen_resolution = {GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
 	DEVMODE devmode;
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devmode);
 	refresh_rate = devmode.dmDisplayFrequency;
-	minimum_delta = 1.f/Oreginum::Core::get_refresh_rate();
+	minimum_delta = 1.f/get_refresh_rate();
 	initial_time = time_since_epoch();
 
 	Window::initialize(title, resolution, debug);
-	Vulkan::initialize(model, uniform_buffer_object, uniform_buffer_object_size, debug);
+	Vulkan::initialize(vertex_data, vertex_data_size,
+		uniform_buffer_object, uniform_buffer_object_size, debug);
 	Mouse::initialize();
 }
 
 void Oreginum::Core::destroy()
 {
+	Mouse::destroy();
 	Vulkan::destroy();
+	Window::destroy();
 }
 
 void Oreginum::Core::error(const std::string& error)
 {
 	destroy();
-	MessageBox(NULL, error.c_str(), "Oreginum Engine", MB_ICONERROR);
+	MessageBox(NULL, error.c_str(), "Oreginum Engine Error", MB_ICONERROR);
 	std::exit(EXIT_FAILURE);
 }
 
@@ -55,14 +58,14 @@ bool Oreginum::Core::update()
 	previous_time = get_time();
 	timeEndPeriod(1);
 
-	Window::update();
-	Keyboard::update();
 	Mouse::update();
+	Keyboard::update();
+	Window::update();
 	Camera::update();
 	return !Window::was_closed();
 }
 
-int Oreginum::Core::get_refresh_rate(){ return refresh_rate; }
+uint32_t Oreginum::Core::get_refresh_rate(){ return refresh_rate; }
 
 glm::ivec2 Oreginum::Core::get_screen_resolution(){ return screen_resolution; }
 
