@@ -8,7 +8,7 @@ namespace Oreginum
 	namespace Core
 	{
 		void initialize(const std::string& title, const glm::ivec2& resolution,
-			const void *vertex_data, size_t vertex_data_size, const void *uniform_buffer_object,
+			const Oreginum::Model& model, const void *uniform_buffer_object,
 			size_t uniform_buffer_object_size, bool debug = false);
 		void destroy();
 

@@ -27,12 +27,13 @@ namespace
 	static constexpr VkSurfaceFormatKHR SWAPCHAIN_FORMAT
 	{VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
 	static constexpr uint32_t SWAPCHAIN_MINIMUM_IMAGE_COUNT{3};
-	static constexpr VkFormat IMAGE_FORMAT{VK_FORMAT_B8G8R8A8_UNORM };
+	static constexpr VkFormat IMAGE_FORMAT{VK_FORMAT_B8G8R8A8_UNORM};
 	static constexpr VkFormat DEPTH_FORMAT{VK_FORMAT_D32_SFLOAT};
+	static constexpr VkFormatFeatureFlags DEPTH_FEATURES
+	{VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT};
 
 	bool debug;
-	const void *vertex_data;
-	size_t vertex_data_size;
+	const Oreginum::Model *model;
 	const void *uniform_buffer_object;
 	size_t uniform_buffer_object_size;
 
@@ -53,7 +54,7 @@ namespace
 	std::vector<VkPresentModeKHR> swapchain_present_modes;
 	VkPhysicalDevice gpu;
 	VkDevice device;
-	
+
 	VkExtent2D swapchain_extent;
 	VkSwapchainKHR swapchain;
 	std::vector<VkImage> swapchain_images;
@@ -61,11 +62,30 @@ namespace
 
 	VkRenderPass render_pass;
 	std::vector<VkImageView> swapchain_image_views;
+	VkDescriptorSetLayout descriptor_set_layout;
 	VkPipelineLayout pipeline_layout;
 	VkPipeline pipeline;
 
 	VkBuffer vertex_buffer;
 	VkDeviceMemory vertex_buffer_memory;
+	VkBuffer vertex_staging_buffer;
+	VkDeviceMemory vertex_staging_buffer_memory;
+
+	VkBuffer index_buffer;
+	VkDeviceMemory index_buffer_memory;
+	VkBuffer index_staging_buffer;
+	VkDeviceMemory index_staging_buffer_memory;
+
+	VkBuffer uniform_buffer;
+	VkDeviceMemory uniform_buffer_memory;
+	VkBuffer uniform_staging_buffer;
+	VkDeviceMemory uniform_staging_buffer_memory;
+	VkDescriptorPool descriptor_pool;
+	VkDescriptorSet descriptor_set;
+
+	VkImage depth_image;
+	VkDeviceMemory depth_image_memory;
+	VkImageView depth_image_view;
 
 	std::array<Virtual_Frame, 3> virtual_frames;
 
@@ -87,7 +107,7 @@ namespace
 		instance_information.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		instance_information.pNext = nullptr;
 		instance_information.flags = NULL;
-		instance_information.pApplicationInfo =	&application_information;
+		instance_information.pApplicationInfo = &application_information;
 		instance_information.enabledLayerCount = static_cast<uint32_t>(instance_layers.size());
 		instance_information.ppEnabledLayerNames = instance_layers.data();
 		instance_information.enabledExtensionCount =
@@ -236,6 +256,11 @@ namespace
 				if(p == VK_PRESENT_MODE_MAILBOX_KHR) swapchain_present_mode_supported = true;
 			if(!swapchain_present_mode_supported) continue;
 
+			//Depth format
+			VkFormatProperties properties;
+			vkGetPhysicalDeviceFormatProperties(g, DEPTH_FORMAT, &properties);
+			if((properties.optimalTilingFeatures & DEPTH_FEATURES) != DEPTH_FEATURES) continue;
+
 			gpu_ratings.insert({rating, g});
 		}
 
@@ -299,8 +324,8 @@ namespace
 	}
 
 	void create_image_view(VkImageView *image_view, VkImage image, VkFormat format,
+		VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT,
 		VkImageViewType view_type = VK_IMAGE_VIEW_TYPE_2D,
-		VkImageSubresourceRange subresource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
 		VkComponentMapping components = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
 		VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY})
 	{
@@ -312,7 +337,7 @@ namespace
 		image_view_information.viewType = view_type;
 		image_view_information.format = format;
 		image_view_information.components = components;
-		image_view_information.subresourceRange = subresource_range;
+		image_view_information.subresourceRange = {aspect, 0, 1, 0, 1};
 
 		if(vkCreateImageView(device, &image_view_information, nullptr, image_view) != VK_SUCCESS)
 			Oreginum::Core::error("Could not create a Vulkan image view.");
@@ -374,10 +399,26 @@ namespace
 		color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+		VkAttachmentDescription depth_attachment_description;
+		depth_attachment_description.flags = NULL;
+		depth_attachment_description.format = DEPTH_FORMAT;
+		depth_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
+		depth_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depth_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depth_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		depth_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depth_attachment_description.initialLayout =
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depth_attachment_description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 		//Subpasses
 		VkAttachmentReference color_attachment_reference;
 		color_attachment_reference.attachment = 0;
 		color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference depth_attachment_reference;
+		depth_attachment_reference.attachment = 1;
+		depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		VkSubpassDescription subpass_description;
 		subpass_description.flags = NULL;
@@ -387,7 +428,7 @@ namespace
 		subpass_description.colorAttachmentCount = 1;
 		subpass_description.pColorAttachments = &color_attachment_reference;
 		subpass_description.pResolveAttachments = nullptr;
-		subpass_description.pDepthStencilAttachment = nullptr;
+		subpass_description.pDepthStencilAttachment = &depth_attachment_reference;
 		subpass_description.preserveAttachmentCount = 0;
 		subpass_description.pPreserveAttachments = nullptr;
 
@@ -409,12 +450,14 @@ namespace
 		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 		//Render pass
+		std::array<VkAttachmentDescription, 2> attachments
+		{color_attachment_description, depth_attachment_description};
 		VkRenderPassCreateInfo render_pass_information;
 		render_pass_information.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		render_pass_information.pNext = nullptr;
 		render_pass_information.flags = NULL;
-		render_pass_information.attachmentCount = 1;
-		render_pass_information.pAttachments = &color_attachment_description;
+		render_pass_information.attachmentCount = static_cast<uint32_t>(attachments.size());
+		render_pass_information.pAttachments = attachments.data();
 		render_pass_information.subpassCount = 1;
 		render_pass_information.pSubpasses = &subpass_description;
 		render_pass_information.dependencyCount = static_cast<uint32_t>(dependencies.size());
@@ -448,11 +491,35 @@ namespace
 		return shader_module;
 	}
 
+	void create_descriptor_set_layout(VkDescriptorSetLayout *descriptor_set_layout,
+		uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage_flags,
+		uint32_t count = 1, VkSampler *immutable_samplers = nullptr)
+	{
+		VkDescriptorSetLayoutBinding descriptor_set_layout_binding;
+		descriptor_set_layout_binding.binding = binding;
+		descriptor_set_layout_binding.descriptorType = type;
+		descriptor_set_layout_binding.descriptorCount = count;
+		descriptor_set_layout_binding.stageFlags = stage_flags;
+		descriptor_set_layout_binding.pImmutableSamplers = immutable_samplers;
+
+		VkDescriptorSetLayoutCreateInfo descriptor_set_layout_information;
+		descriptor_set_layout_information.sType =
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		descriptor_set_layout_information.pNext = nullptr;
+		descriptor_set_layout_information.flags = NULL;
+		descriptor_set_layout_information.bindingCount = 1;
+		descriptor_set_layout_information.pBindings = &descriptor_set_layout_binding;
+
+		if(vkCreateDescriptorSetLayout(device, &descriptor_set_layout_information,
+			nullptr, descriptor_set_layout) != VK_SUCCESS)
+			Oreginum::Core::error("Could not create a Vulkan descriptor set layout.");
+	}
+
 	void create_graphics_pipeline()
 	{
 		//Shaders
-		VkShaderModule vertex_shader_module{create_shader_module("Primitive Vertex")};
-		VkShaderModule fragment_shader_module{create_shader_module("Primitive Fragment")};
+		VkShaderModule vertex_shader_module{create_shader_module("Basic Vertex")};
+		VkShaderModule fragment_shader_module{create_shader_module("Basic Fragment")};
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> shader_stage_informations;
 		shader_stage_informations[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -473,10 +540,10 @@ namespace
 		//Vertex input
 		VkVertexInputBindingDescription vertex_input_binding_description;
 		vertex_input_binding_description.binding = 0;
-		vertex_input_binding_description.stride = sizeof(float)*6;
+		vertex_input_binding_description.stride = sizeof(float)*8;
 		vertex_input_binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-		std::array<VkVertexInputAttributeDescription, 2> vertex_attribute_descriptions;
+		std::array<VkVertexInputAttributeDescription, 3> vertex_attribute_descriptions;
 		vertex_attribute_descriptions[0].location = 0;
 		vertex_attribute_descriptions[0].binding = vertex_input_binding_description.binding;
 		vertex_attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -485,6 +552,10 @@ namespace
 		vertex_attribute_descriptions[1].binding = vertex_input_binding_description.binding;
 		vertex_attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 		vertex_attribute_descriptions[1].offset = sizeof(float)*3;
+		vertex_attribute_descriptions[2].location = 2;
+		vertex_attribute_descriptions[2].binding = vertex_input_binding_description.binding;
+		vertex_attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+		vertex_attribute_descriptions[2].offset = sizeof(float)*6;
 
 		VkPipelineVertexInputStateCreateInfo vertex_input_state_information;
 		vertex_input_state_information.sType =
@@ -504,7 +575,7 @@ namespace
 			VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		input_assembly_state_information.pNext = nullptr;
 		input_assembly_state_information.flags = NULL;
-		input_assembly_state_information.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+		input_assembly_state_information.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		input_assembly_state_information.primitiveRestartEnable = VK_FALSE;
 
 		//Viewport
@@ -546,6 +617,22 @@ namespace
 		multisample_state_information.pSampleMask = nullptr;
 		multisample_state_information.alphaToCoverageEnable = VK_FALSE;
 		multisample_state_information.alphaToOneEnable = VK_FALSE;
+
+		//Depth stencil
+		VkPipelineDepthStencilStateCreateInfo depth_stencil_state_information;
+		depth_stencil_state_information.sType =
+			VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depth_stencil_state_information.pNext = nullptr;
+		depth_stencil_state_information.flags = NULL;
+		depth_stencil_state_information.depthTestEnable = VK_TRUE;
+		depth_stencil_state_information.depthWriteEnable = VK_TRUE;
+		depth_stencil_state_information.depthCompareOp = VK_COMPARE_OP_LESS;
+		depth_stencil_state_information.depthBoundsTestEnable = VK_FALSE;
+		depth_stencil_state_information.stencilTestEnable = VK_FALSE;
+		depth_stencil_state_information.front = {};
+		depth_stencil_state_information.back = {};
+		depth_stencil_state_information.minDepthBounds = 0;
+		depth_stencil_state_information.maxDepthBounds = 1;
 
 		//Blending
 		VkPipelineColorBlendAttachmentState color_blend_attachment_state;
@@ -589,8 +676,8 @@ namespace
 		layout_information.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		layout_information.pNext = nullptr;
 		layout_information.flags = NULL;
-		layout_information.setLayoutCount = 0;
-		layout_information.pSetLayouts = nullptr;
+		layout_information.setLayoutCount = 1;
+		layout_information.pSetLayouts = &descriptor_set_layout;
 		layout_information.pushConstantRangeCount = 0;
 		layout_information.pPushConstantRanges = nullptr;
 
@@ -615,7 +702,7 @@ namespace
 		pipeline_information.pViewportState = &viewport_state_information;
 		pipeline_information.pRasterizationState = &rasterization_state_information;
 		pipeline_information.pMultisampleState = &multisample_state_information;
-		pipeline_information.pDepthStencilState = nullptr;
+		pipeline_information.pDepthStencilState = &depth_stencil_state_information;
 		pipeline_information.pColorBlendState = &color_blend_state_information;
 		pipeline_information.pDynamicState = &dynamic_state_create_info;
 		pipeline_information.layout = pipeline_layout;
@@ -636,10 +723,25 @@ namespace
 		vkDestroyShaderModule(device, vertex_shader_module, nullptr);
 	}
 
-	void create_buffer(VkBuffer *buffer, size_t size, VkBufferUsageFlags usage =
-		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE,
-		uint32_t queue_family_index_count = 0, const uint32_t *queue_family_indices = nullptr)
+	uint32_t find_memory(uint32_t type, VkMemoryPropertyFlags properties)
 	{
+		VkPhysicalDeviceMemoryProperties memory_properties;
+		vkGetPhysicalDeviceMemoryProperties(gpu, &memory_properties);
+
+		for(uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
+			if((type & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & properties))
+				return i;
+
+		Oreginum::Core::error("Could not find suitable Vulkan memory.");
+	}
+
+	void create_buffer(VkBuffer *buffer, VkDeviceMemory *memory, size_t size,
+		VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_property_flags,
+		VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE,
+		VkDeviceSize offset = 0, uint32_t queue_family_index_count = 0,
+		const uint32_t *queue_family_indices = nullptr)
+	{
+		//Create buffer
 		VkBufferCreateInfo buffer_information;
 		buffer_information.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		buffer_information.pNext = nullptr;
@@ -652,55 +754,145 @@ namespace
 
 		if(vkCreateBuffer(device, &buffer_information, nullptr, buffer) != VK_SUCCESS)
 			Oreginum::Core::error("Could not create a Vulkan buffer.");
-	}
 
-	void allocate_buffer_memory(VkDeviceMemory *memory, VkBuffer buffer,
-		VkMemoryPropertyFlags memory_property_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-		VkDeviceSize offset = 0)
-	{
+		//Allocate buffer memory
 		VkMemoryRequirements memory_requirements;
-		vkGetBufferMemoryRequirements(device, buffer, &memory_requirements);
+		vkGetBufferMemoryRequirements(device, *buffer, &memory_requirements);
 
-		VkPhysicalDeviceMemoryProperties memory_properties;
-		vkGetPhysicalDeviceMemoryProperties(gpu, &memory_properties);
+		VkMemoryAllocateInfo memory_information;
+		memory_information.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		memory_information.pNext = nullptr;
+		memory_information.allocationSize = memory_requirements.size;
+		memory_information.memoryTypeIndex =
+			find_memory(memory_requirements.memoryTypeBits, memory_property_flags);
 
-		for(uint32_t i{}; i < memory_properties.memoryTypeCount; ++i)
-			if((memory_requirements.memoryTypeBits & (1 << i)) &&
-				(memory_properties.memoryTypes[i].propertyFlags & memory_property_flags))
-			{
-				VkMemoryAllocateInfo memory_information;
-				memory_information.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-				memory_information.pNext = nullptr;
-				memory_information.allocationSize = memory_requirements.size;
-				memory_information.memoryTypeIndex = i;
+		if(vkAllocateMemory(device, &memory_information, nullptr, memory) != VK_SUCCESS)
+			Oreginum::Core::error("Could not allocate memory for a Vulkan buffer.");
 
-				if(vkAllocateMemory(device, &memory_information, nullptr, memory) != VK_SUCCESS)
-					Oreginum::Core::error("Could not allocate memory for a Vulkan buffer.");
-
-				if(vkBindBufferMemory(device, buffer, vertex_buffer_memory, offset) != VK_SUCCESS)
-					Oreginum::Core::error("Could not bind memory to a Vulkan vertex buffer.");
-
-				return;
-			}
+		//Bind buffer memory
+		if(vkBindBufferMemory(device, *buffer, *memory, offset) != VK_SUCCESS)
+			Oreginum::Core::error("Could not bind memory to a Vulkan buffer.");
 	}
 
-	void upload_data(VkDeviceMemory memory, const void *data, size_t data_size)
+	VkCommandBuffer begin_single_time_commands()
 	{
-		void *vertex_buffer_memory_pointer;
-		if(vkMapMemory(device, memory, 0, data_size, NULL, &vertex_buffer_memory_pointer))
-			Oreginum::Core::error("Could not map Vulkan vertex buffer memory.");
+		VkCommandBufferAllocateInfo command_buffer_allocate_information;
+		command_buffer_allocate_information.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		command_buffer_allocate_information.pNext = nullptr;
+		command_buffer_allocate_information.commandPool = command_pool;
+		command_buffer_allocate_information.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		command_buffer_allocate_information.commandBufferCount = 1;
 
-		memcpy(vertex_buffer_memory_pointer, data, data_size);
+		VkCommandBufferBeginInfo command_buffer_begin_information;
+		command_buffer_begin_information.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		command_buffer_begin_information.pNext = nullptr;
+		command_buffer_begin_information.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		command_buffer_begin_information.pInheritanceInfo = nullptr;
+
+		VkCommandBuffer command_buffer;
+		vkAllocateCommandBuffers(device, &command_buffer_allocate_information, &command_buffer);
+
+		vkBeginCommandBuffer(command_buffer, &command_buffer_begin_information);
+
+		return command_buffer;
+	}
+
+	void end_single_time_commands(VkCommandBuffer command_buffer)
+	{
+		vkEndCommandBuffer(command_buffer);
+
+		VkSubmitInfo submit_information;
+		submit_information.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit_information.pNext = nullptr;
+		submit_information.waitSemaphoreCount = 0;
+		submit_information.pWaitSemaphores = nullptr;
+		submit_information.commandBufferCount = 1;
+		submit_information.pCommandBuffers = &command_buffer;
+		submit_information.signalSemaphoreCount = 0;
+		submit_information.pSignalSemaphores = nullptr;
+
+		vkQueueSubmit(graphics_queue, 1, &submit_information, VK_NULL_HANDLE);
+		vkQueueWaitIdle(graphics_queue);
+
+		vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+	}
+
+	void copy_data(VkBuffer staging_buffer, VkBuffer device_buffer,
+		VkDeviceMemory staging_memory, const void *data, size_t data_size)
+	{
+		//Copy data to staging buffer
+		void *memory_pointer;
+		if(vkMapMemory(device, staging_memory, 0, data_size, NULL, &memory_pointer))
+			Oreginum::Core::error("Could not map Vulkan staging buffer memory.");
+
+		memcpy(memory_pointer, data, data_size);
 
 		VkMappedMemoryRange mapped_memory_range;
 		mapped_memory_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 		mapped_memory_range.pNext = nullptr;
-		mapped_memory_range.memory = memory;
+		mapped_memory_range.memory = staging_memory;
 		mapped_memory_range.offset = 0;
-		mapped_memory_range.size = VK_WHOLE_SIZE;
+		mapped_memory_range.size = data_size;
 
 		vkFlushMappedMemoryRanges(device, 1, &mapped_memory_range);
-		vkUnmapMemory(device, memory);
+		vkUnmapMemory(device, staging_memory);
+
+		//Copy data to device buffer
+		VkCommandBuffer command_buffer{begin_single_time_commands()};
+		VkBufferCopy buffer_copy{0, 0, data_size};
+		vkCmdCopyBuffer(command_buffer, staging_buffer, device_buffer, 1, &buffer_copy);
+		end_single_time_commands(command_buffer);
+	}
+
+	void copy_data_old(VkCommandBuffer command_buffer, VkBuffer staging_buffer,
+		VkBuffer device_buffer, VkDeviceMemory staging_memory, const void *data, size_t data_size)
+	{
+		//Copy data to staging buffer
+		void *memory_pointer;
+		if(vkMapMemory(device, staging_memory, 0, data_size, NULL, &memory_pointer))
+			Oreginum::Core::error("Could not map Vulkan staging buffer memory.");
+
+		memcpy(memory_pointer, data, data_size);
+
+		VkMappedMemoryRange mapped_memory_range;
+		mapped_memory_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+		mapped_memory_range.pNext = nullptr;
+		mapped_memory_range.memory = staging_memory;
+		mapped_memory_range.offset = 0;
+		mapped_memory_range.size = data_size;
+
+		vkFlushMappedMemoryRanges(device, 1, &mapped_memory_range);
+		vkUnmapMemory(device, staging_memory);
+
+		//Copy data to device buffer
+		VkCommandBufferBeginInfo command_buffer_information;
+		command_buffer_information.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		command_buffer_information.pNext = nullptr;
+		command_buffer_information.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		command_buffer_information.pInheritanceInfo = nullptr;
+
+		vkBeginCommandBuffer(command_buffer, &command_buffer_information);
+
+		VkBufferCopy buffer_copy{0, 0, data_size};
+		vkCmdCopyBuffer(command_buffer, staging_buffer, device_buffer, 1, &buffer_copy);
+
+		vkEndCommandBuffer(command_buffer);
+
+		VkSubmitInfo submit_information;
+		submit_information.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit_information.pNext = nullptr;
+		submit_information.waitSemaphoreCount = 0;
+		submit_information.pWaitSemaphores = nullptr;
+		submit_information.pWaitDstStageMask = nullptr;
+		submit_information.commandBufferCount = 1;
+		submit_information.pCommandBuffers = &command_buffer;
+		submit_information.signalSemaphoreCount = 0;
+		submit_information.pSignalSemaphores = nullptr;
+
+		if(vkQueueSubmit(graphics_queue, 1, &submit_information, VK_NULL_HANDLE) != VK_SUCCESS)
+			Oreginum::Core::error("Could not submit a Vulkan command buffer.");
+
+		vkDeviceWaitIdle(device);
 	}
 
 	void create_command_pool(VkCommandPool *command_pool, VkCommandPoolCreateFlags flags,
@@ -730,15 +922,151 @@ namespace
 			VK_SUCCESS) Oreginum::Core::error("Could not allocate a Vulkan command buffer.");
 	}
 
+	void create_descriptor_pool(VkDescriptorType type,
+		uint32_t count = 1, uint32_t maximum_sets = 1)
+	{
+		VkDescriptorPoolSize descriptor_pool_size;
+		descriptor_pool_size.type = type;
+		descriptor_pool_size.descriptorCount = count;
+
+		VkDescriptorPoolCreateInfo descriptor_pool_information;
+		descriptor_pool_information.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		descriptor_pool_information.pNext = nullptr;
+		descriptor_pool_information.flags = NULL;
+		descriptor_pool_information.maxSets = maximum_sets;
+		descriptor_pool_information.poolSizeCount = 1;
+		descriptor_pool_information.pPoolSizes = &descriptor_pool_size;
+
+		if(vkCreateDescriptorPool(device, &descriptor_pool_information, nullptr, &descriptor_pool)
+			!= VK_SUCCESS) Oreginum::Core::error("Could not create a Vulkan descriptor pool.");
+	}
+
+	void create_descriptor_set(VkDescriptorSet *descriptor_sets, VkDescriptorPool pool,
+		std::vector<VkDescriptorSetLayout> layouts)
+	{
+		VkDescriptorSetAllocateInfo descriptor_set_allocate_information;
+		descriptor_set_allocate_information.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		descriptor_set_allocate_information.pNext = nullptr;
+		descriptor_set_allocate_information.descriptorPool = pool;
+		descriptor_set_allocate_information.descriptorSetCount =
+			static_cast<uint32_t>(layouts.size());
+		descriptor_set_allocate_information.pSetLayouts = layouts.data();
+
+		if(vkAllocateDescriptorSets(device, &descriptor_set_allocate_information,
+			descriptor_sets) != VK_SUCCESS)
+			Oreginum::Core::error("Could not allocate a Vulkan descriptor set.");
+	}
+
+	void write_buffer_descriptor_set(VkBuffer buffer, VkDeviceSize range,
+		VkDescriptorSet descriptor_set, uint32_t binding, VkDescriptorType descriptor_type,
+		uint32_t descriptor_count = 1, uint32_t element = 0, VkDeviceSize offset = 0)
+	{
+		VkDescriptorBufferInfo descriptor_buffer_information;
+		descriptor_buffer_information.buffer = buffer;
+		descriptor_buffer_information.offset = offset;
+		descriptor_buffer_information.range = range;
+
+		VkWriteDescriptorSet write_descriptor_set;
+		write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write_descriptor_set.pNext = nullptr;
+		write_descriptor_set.dstSet = descriptor_set;
+		write_descriptor_set.dstBinding = binding;
+		write_descriptor_set.dstArrayElement = element;
+		write_descriptor_set.descriptorCount = descriptor_count;
+		write_descriptor_set.descriptorType = descriptor_type;
+		write_descriptor_set.pImageInfo = nullptr;
+		write_descriptor_set.pBufferInfo = &descriptor_buffer_information;
+		write_descriptor_set.pTexelBufferView = nullptr;
+
+		vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, nullptr);
+	}
+
+	void create_image(VkImage *image, VkDeviceMemory *image_memory, const glm::uvec2& resolution,
+		VkFormat format = IMAGE_FORMAT,
+		VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL,
+		VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		uint32_t mip_levels = 1, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT,
+		VkImageType type = VK_IMAGE_TYPE_2D, uint32_t array_layers = 1,
+		VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE,
+		const std::vector<uint32_t>& queue_family_indices = {})
+	{
+		VkImageCreateInfo image_information;
+		image_information.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		image_information.pNext = nullptr;
+		image_information.flags = NULL;
+		image_information.imageType = type;
+		image_information.format = format;
+		image_information.extent = {resolution.x, resolution.y, 1};
+		image_information.mipLevels = mip_levels;
+		image_information.arrayLayers = array_layers;
+		image_information.samples = samples;
+		image_information.tiling = tiling;
+		image_information.usage = usage;
+		image_information.sharingMode = sharing_mode;
+		image_information.queueFamilyIndexCount =
+			static_cast<uint32_t>(queue_family_indices.size());
+		image_information.pQueueFamilyIndices = queue_family_indices.data();
+		image_information.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
+
+		if(vkCreateImage(device, &image_information, nullptr, image) != VK_SUCCESS)
+			Oreginum::Core::error("Could not create a Vulkan image.");
+
+		VkMemoryRequirements memory_requirements;
+		vkGetImageMemoryRequirements(device, *image, &memory_requirements);
+
+		VkMemoryAllocateInfo memory_information;
+		memory_information.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		memory_information.pNext = nullptr;
+		memory_information.allocationSize = memory_requirements.size;
+		memory_information.memoryTypeIndex =
+			find_memory(memory_requirements.memoryTypeBits, properties);
+
+		if(vkAllocateMemory(device, &memory_information, nullptr, image_memory) != VK_SUCCESS)
+			Oreginum::Core::error("Could not allocate memory for a Vulkan image.");
+
+		vkBindImageMemory(device, *image, *image_memory, 0);
+	}
+
+	void transition_image_layout(VkImage image, VkFormat format,
+		VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags source_access_flags,
+		VkAccessFlags destination_access_flags,
+		VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+		uint32_t source_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
+		uint32_t destination_family_queue_index = VK_QUEUE_FAMILY_IGNORED)
+	{
+		VkCommandBuffer command_buffer{begin_single_time_commands()};
+
+		VkImageMemoryBarrier image_memory_barrier;
+		image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		image_memory_barrier.pNext = nullptr;
+		image_memory_barrier.srcAccessMask = source_access_flags;
+		image_memory_barrier.dstAccessMask = destination_access_flags;
+		image_memory_barrier.oldLayout = old_layout;
+		image_memory_barrier.newLayout = new_layout;
+		image_memory_barrier.srcQueueFamilyIndex = source_queue_family_index;
+		image_memory_barrier.dstQueueFamilyIndex = destination_family_queue_index;
+		image_memory_barrier.image = image;
+		image_memory_barrier.subresourceRange = {aspect, 0, 1, 0, 1};
+
+		vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1,
+			&image_memory_barrier);
+
+		end_single_time_commands(command_buffer);
+	}
+
 	void create_framebuffer(VkFramebuffer *framebuffer, VkImageView image_view, VkExtent2D extent)
 	{
+		std::array<VkImageView, 2> attachments{image_view, depth_image_view};
+
 		VkFramebufferCreateInfo framebuffer_information;
 		framebuffer_information.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebuffer_information.pNext = nullptr;
 		framebuffer_information.flags = NULL;
 		framebuffer_information.renderPass = render_pass;
-		framebuffer_information.attachmentCount = 1;
-		framebuffer_information.pAttachments = &image_view;
+		framebuffer_information.attachmentCount = static_cast<uint32_t>(attachments.size());
+		framebuffer_information.pAttachments = attachments.data();
 		framebuffer_information.width = extent.width;
 		framebuffer_information.height = extent.height;
 		framebuffer_information.layers = 1;
@@ -749,6 +1077,10 @@ namespace
 
 	void prepare_frame(Virtual_Frame *virtual_frame, VkImageView image_view)
 	{
+		//Update uniform buffer
+		copy_data_old(virtual_frame->command_buffer, uniform_staging_buffer, uniform_buffer,
+			uniform_staging_buffer_memory, uniform_buffer_object, uniform_buffer_object_size);
+
 		if(virtual_frame->framebuffer)
 			vkDestroyFramebuffer(device, virtual_frame->framebuffer, nullptr);
 		create_framebuffer(&virtual_frame->framebuffer, image_view, swapchain_extent);
@@ -761,15 +1093,18 @@ namespace
 
 		vkBeginCommandBuffer(virtual_frame->command_buffer, &command_buffer_information);
 
-		VkClearValue clear_value{1, .8f, .4f, 0};
+		std::array<VkClearValue, 2> clear_values{};
+		clear_values[0].color = {0, 0, 0, 1};
+		clear_values[1].depthStencil = {1, 0};
+
 		VkRenderPassBeginInfo render_pass_begin_information;
 		render_pass_begin_information.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		render_pass_begin_information.pNext = nullptr;
 		render_pass_begin_information.renderPass = render_pass;
 		render_pass_begin_information.framebuffer = virtual_frame->framebuffer;
 		render_pass_begin_information.renderArea = {{0, 0}, swapchain_extent};
-		render_pass_begin_information.clearValueCount = 1;
-		render_pass_begin_information.pClearValues = &clear_value;
+		render_pass_begin_information.clearValueCount = static_cast<uint32_t>(clear_values.size());
+		render_pass_begin_information.pClearValues = clear_values.data();
 
 		vkCmdBeginRenderPass(virtual_frame->command_buffer, &render_pass_begin_information,
 			VK_SUBPASS_CONTENTS_INLINE);
@@ -783,10 +1118,16 @@ namespace
 		vkCmdSetViewport(virtual_frame->command_buffer, 0, 1, &viewport);
 		vkCmdSetScissor(virtual_frame->command_buffer, 0, 1, &scissor);
 
-		VkDeviceSize offset{};
-		vkCmdBindVertexBuffers(virtual_frame->command_buffer, 0, 1, &vertex_buffer, &offset);
+		VkDeviceSize offsets{0};
+		vkCmdBindVertexBuffers(virtual_frame->command_buffer, 0, 1, &vertex_buffer, &offsets);
 
-		vkCmdDraw(virtual_frame->command_buffer, 4, 1, 0, 0);
+		vkCmdBindIndexBuffer(virtual_frame->command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
+
+		vkCmdBindDescriptorSets(virtual_frame->command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
+
+		vkCmdDrawIndexed(virtual_frame->command_buffer,
+			static_cast<uint32_t>(model->get_indices().size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(virtual_frame->command_buffer);
 
@@ -794,19 +1135,40 @@ namespace
 			Oreginum::Core::error("Could not record a Vulkan command buffer.");
 	}
 
+	void create_swapchain_dependants()
+	{
+		//Depth stencil
+		create_image(&depth_image, &depth_image_memory, {swapchain_extent.width,
+			swapchain_extent.height}, DEPTH_FORMAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+		create_image_view(&depth_image_view, depth_image, DEPTH_FORMAT, VK_IMAGE_ASPECT_DEPTH_BIT);
+		transition_image_layout(depth_image, DEPTH_FORMAT, VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, NULL,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			VK_IMAGE_ASPECT_DEPTH_BIT);
+	}
+
+	void destroy_swapchain_dependants()
+	{
+		//Depth stencil
+		if(depth_image_view) vkDestroyImageView(device, depth_image_view, nullptr);
+		if(depth_image_memory) vkFreeMemory(device, depth_image_memory, nullptr);
+		if(depth_image) vkDestroyImage(device, depth_image, nullptr);
+	}
+
 	void recreate_swapchain()
 	{
 		if(device) vkDeviceWaitIdle(device);
+		destroy_swapchain_dependants();
 		create_swapchain();
+		create_swapchain_dependants();
 	}
 }
 
-void Oreginum::Vulkan::initialize(const void *vertex_data, size_t vertex_data_size,
-	const void *uniform_buffer_object, size_t uniform_buffer_object_size, bool debug)
+void Oreginum::Vulkan::initialize(const Oreginum::Model& model, const void *uniform_buffer_object,
+	size_t uniform_buffer_object_size, bool debug)
 {
+	::model = &model;
 	::debug = debug;
-	::vertex_data = vertex_data;
-	::vertex_data_size = vertex_data_size;
 	::uniform_buffer_object = uniform_buffer_object;
 	::uniform_buffer_object_size = uniform_buffer_object_size;
 
@@ -819,10 +1181,10 @@ void Oreginum::Vulkan::initialize(const void *vertex_data, size_t vertex_data_si
 	create_swapchain();
 
 	create_render_pass();
+	create_descriptor_set_layout(&descriptor_set_layout, 0,
+		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
 	create_graphics_pipeline();
-	create_buffer(&vertex_buffer, vertex_data_size);
-	allocate_buffer_memory(&vertex_buffer_memory, vertex_buffer);
-	upload_data(vertex_buffer_memory, vertex_data, vertex_data_size);
+
 	create_command_pool(&command_pool, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT |
 		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 	for(auto& v : virtual_frames)
@@ -832,14 +1194,72 @@ void Oreginum::Vulkan::initialize(const void *vertex_data, size_t vertex_data_si
 		create_semaphore(&v.rendering_finished_semaphore);
 		create_fence(&v.fence);
 	}
+
+	//Vertex buffer
+	create_buffer(&vertex_staging_buffer, &vertex_staging_buffer_memory,
+		sizeof(model.get_vertices()[0])*model.get_vertices().size(),
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+	create_buffer(&vertex_buffer, &vertex_buffer_memory,
+		sizeof(model.get_vertices()[0])*model.get_vertices().size(),
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	copy_data(vertex_staging_buffer, vertex_buffer, vertex_staging_buffer_memory,
+		model.get_vertices().data(), sizeof(model.get_vertices()[0])*model.get_vertices().size());
+
+	//Indice buffer
+	create_buffer(&index_staging_buffer, &index_staging_buffer_memory,
+		sizeof(model.get_indices()[0])*model.get_indices().size(),
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	create_buffer(&index_buffer, &index_buffer_memory,
+		sizeof(model.get_indices()[0])*model.get_indices().size(),
+		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	copy_data(index_staging_buffer, index_buffer, index_staging_buffer_memory,
+		model.get_indices().data(), sizeof(model.get_indices()[0])*model.get_indices().size());
+
+	//Uniform buffer
+	create_buffer(&uniform_staging_buffer, &uniform_staging_buffer_memory,
+		uniform_buffer_object_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	create_buffer(&uniform_buffer, &uniform_buffer_memory, uniform_buffer_object_size,
+		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	create_descriptor_pool(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	create_descriptor_set(&descriptor_set, descriptor_pool, {descriptor_set_layout});
+	write_buffer_descriptor_set(uniform_buffer, uniform_buffer_object_size,
+		descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+	create_swapchain_dependants();
 }
 
 void Oreginum::Vulkan::destroy()
 {
 	if(device) vkDeviceWaitIdle(device);
+
+	for(Virtual_Frame& v : virtual_frames)
+		if(v.framebuffer) vkDestroyFramebuffer(device, v.framebuffer, nullptr);
+
+	destroy_swapchain_dependants();
+
+	if(vertex_buffer_memory) vkFreeMemory(device, vertex_buffer_memory, nullptr);
+	if(vertex_buffer) vkDestroyBuffer(device, vertex_buffer, nullptr);
+	if(vertex_staging_buffer_memory) vkFreeMemory(device, vertex_staging_buffer_memory, nullptr);
+	if(vertex_staging_buffer) vkDestroyBuffer(device, vertex_staging_buffer, nullptr);
+
+	if(descriptor_pool) vkDestroyDescriptorPool(device, descriptor_pool, nullptr);
+	if(uniform_buffer_memory) vkFreeMemory(device, uniform_buffer_memory, nullptr);
+	if(uniform_buffer) vkDestroyBuffer(device, uniform_buffer, nullptr);
+	if(uniform_staging_buffer_memory) vkFreeMemory(device, uniform_staging_buffer_memory, nullptr);
+	if(uniform_staging_buffer) vkDestroyBuffer(device, uniform_staging_buffer, nullptr);
+
+	if(index_buffer_memory) vkFreeMemory(device, index_buffer_memory, nullptr);
+	if(index_buffer) vkDestroyBuffer(device, index_buffer, nullptr);
+	if(index_staging_buffer_memory) vkFreeMemory(device, index_staging_buffer_memory, nullptr);
+	if(index_staging_buffer) vkDestroyBuffer(device, index_staging_buffer, nullptr);
+
 	for(Virtual_Frame& v : virtual_frames)
 	{
-		if(v.framebuffer) vkDestroyFramebuffer(device, v.framebuffer, nullptr);
 		if(v.fence) vkDestroyFence(device, v.fence, nullptr);
 		if(v.rendering_finished_semaphore)
 			vkDestroySemaphore(device, v.rendering_finished_semaphore, nullptr);
@@ -847,12 +1267,11 @@ void Oreginum::Vulkan::destroy()
 			vkDestroySemaphore(device, v.swapchain_image_available_semaphore, nullptr);
 		if(v.command_buffer) vkFreeCommandBuffers(device, command_pool, 1, &v.command_buffer);
 	}
-
 	if(command_pool) vkDestroyCommandPool(device, command_pool, nullptr);
-	if(vertex_buffer_memory) vkFreeMemory(device, vertex_buffer_memory, nullptr);
-	if(vertex_buffer) vkDestroyBuffer(device, vertex_buffer, nullptr);
+
 	if(pipeline) vkDestroyPipeline(device, pipeline, nullptr);
 	if(pipeline_layout) vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
+	if(descriptor_set_layout) vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
 	if(render_pass) vkDestroyRenderPass(device, render_pass, nullptr);
 
 	for(VkImageView& i : swapchain_image_views) vkDestroyImageView(device, i, nullptr);
@@ -882,7 +1301,7 @@ void Oreginum::Vulkan::render()
 
 	//Swapchain image
 	uint32_t image_index;
-	VkResult result{vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, 
+	VkResult result{vkAcquireNextImageKHR(device, swapchain, UINT64_MAX,
 		virtual_frame->swapchain_image_available_semaphore, VK_NULL_HANDLE, &image_index)};
 	if(result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) recreate_swapchain();
 	else if(result != VK_SUCCESS)

@@ -31,27 +31,31 @@ namespace
 
 void Oreginum::Camera::update()
 {
-	glm::fvec2 cursor_delta{-glm::fvec2{Mouse::get_delta()}*SENSITIVITY};
-	if(glm::length(cursor_delta))
-	{
-		yaw += cursor_delta.x;
-		pitch += cursor_delta.y;
-		if(pitch > pitch_limit) pitch = pitch_limit;
-		else if(pitch < -pitch_limit) pitch = -pitch_limit;
+	if(!Window::is_visible()) return;
 
-		direction = glm::rotate(glm::angleAxis(yaw, world_up)*
-			glm::angleAxis(pitch, world_right), world_forward);
-		right = glm::normalize(glm::cross(direction, world_up));
-		forward = glm::normalize(direction*glm::fvec3{1, 0, 1});
+	if(Mouse::is_locked())
+	{
+		glm::fvec2 cursor_delta{-glm::fvec2{Mouse::get_delta()}*SENSITIVITY};
+		if(glm::length(cursor_delta))
+		{
+			yaw += cursor_delta.x;
+			pitch += cursor_delta.y;
+			if(pitch > pitch_limit) pitch = pitch_limit;
+			else if(pitch < -pitch_limit) pitch = -pitch_limit;
+
+			direction = glm::rotate(glm::angleAxis(yaw, world_up)*
+				glm::angleAxis(pitch, world_right), world_forward);
+			right = glm::normalize(glm::cross(direction, world_up));
+			forward = glm::normalize(direction*glm::fvec3{1, 0, 1});
+		}
+
+		float velocity{(GetAsyncKeyState(VK_LSHIFT) ? RUN_SPEED : WALK_SPEED)*Core::get_delta()};
+		if(Keyboard::is_held(Key::W)) position += direction*velocity;
+		if(Keyboard::is_held(Key::S)) position -= direction*velocity;
+		if(Keyboard::is_held(Key::A)) position -= right*velocity;
+		if(Keyboard::is_held(Key::D)) position += right*velocity;
 	}
 
-	float velocity{(GetAsyncKeyState(VK_LSHIFT) ? RUN_SPEED : WALK_SPEED)*Core::get_delta()};
-	if(Keyboard::is_held(Key::W)) position += direction*velocity;
-	if(Keyboard::is_held(Key::S)) position -= direction*velocity;
-	if(Keyboard::is_held(Key::A)) position -= right*velocity;
-	if(Keyboard::is_held(Key::D)) position += right*velocity;
-
-	if(!Window::is_visible()) return;
 	view = glm::lookAt(position, position+direction, world_up);
 	projection = glm::perspective(FOV, Window::get_resolution().x/
 		static_cast<float>(Window::get_resolution().y), NEAR_CLIP, FAR_CLIP);

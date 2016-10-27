@@ -20,7 +20,7 @@ namespace
 };
 
 void Oreginum::Core::initialize(const std::string& title, const glm::ivec2& resolution,
-	const void *vertex_data, size_t vertex_data_size, const void *uniform_buffer_object,
+	const Oreginum::Model& model, const void *uniform_buffer_object,
 	size_t uniform_buffer_object_size, bool debug)
 {
 	screen_resolution = {GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
@@ -31,8 +31,7 @@ void Oreginum::Core::initialize(const std::string& title, const glm::ivec2& reso
 	initial_time = time_since_epoch();
 
 	Window::initialize(title, resolution, debug);
-	Vulkan::initialize(vertex_data, vertex_data_size,
-		uniform_buffer_object, uniform_buffer_object_size, debug);
+	Vulkan::initialize(model, uniform_buffer_object, uniform_buffer_object_size, debug);
 	Mouse::initialize();
 }
 
