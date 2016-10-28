@@ -2,12 +2,11 @@
 #define GLM_FORECE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_RADIANS
 #include <GLM/gtc/matrix_transform.hpp>
-#include "Core.hpp"
-#include "Vulkan.hpp"
-#include "Camera.hpp"
-#include "Keyboard.hpp"
-#include "Mouse.hpp"
-#include <iostream>
+#include "Oreginum/Core.hpp"
+#include "Oreginum/Camera.hpp"
+#include "Oreginum/Keyboard.hpp"
+#include "Oreginum/Mouse.hpp"
+#include "Vulkan/Core.hpp"
 
 /*
 	Removed copy data old.
@@ -33,7 +32,7 @@ int WinMain(HINSTANCE instance, HINSTANCE previous_instance, LPSTR arguments, in
 		uniforms.projection[1][1] *= -1;
 		uniforms.camera_position = Oreginum::Camera::get_position();
 
-		Oreginum::Vulkan::render();
+		Oreginum::Vulkan::Core::render();
 	}
 	Oreginum::Core::destroy();
 }

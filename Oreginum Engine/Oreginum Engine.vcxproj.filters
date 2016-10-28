@@ -13,54 +13,78 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\Vulkan">
+      <UniqueIdentifier>{a66539c2-dae4-4d51-89ac-114843d1e5da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Oreginum">
+      <UniqueIdentifier>{15b4cf04-3d09-4b53-9c56-ac65e7540cb5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Vulkan.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Vulkan\Buffer.cpp">
+      <Filter>Source Files\Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="src\Window.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Vulkan\Core.cpp">
+      <Filter>Source Files\Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Vulkan\Instance.cpp">
+      <Filter>Source Files\Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="src\Model.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Oreginum\Camera.cpp">
+      <Filter>Source Files\Oreginum</Filter>
     </ClCompile>
-    <ClCompile Include="src\Camera.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Oreginum\Core.cpp">
+      <Filter>Source Files\Oreginum</Filter>
     </ClCompile>
-    <ClCompile Include="src\Mouse.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Oreginum\Keyboard.cpp">
+      <Filter>Source Files\Oreginum</Filter>
     </ClCompile>
-    <ClCompile Include="src\Keyboard.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Oreginum\Model.cpp">
+      <Filter>Source Files\Oreginum</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Oreginum\Mouse.cpp">
+      <Filter>Source Files\Oreginum</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Oreginum\Window.cpp">
+      <Filter>Source Files\Oreginum</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Device.cpp">
+      <Filter>Source Files\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Vulkan.hpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\Vulkan\Buffer.hpp">
+      <Filter>Source Files\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="src\Window.hpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\Vulkan\Core.hpp">
+      <Filter>Source Files\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="src\Core.hpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\Vulkan\Instance.hpp">
+      <Filter>Source Files\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="src\Model.hpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\Oreginum\Camera.hpp">
+      <Filter>Source Files\Oreginum</Filter>
     </ClInclude>
-    <ClInclude Include="src\Camera.hpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\Oreginum\Core.hpp">
+      <Filter>Source Files\Oreginum</Filter>
     </ClInclude>
-    <ClInclude Include="src\Mouse.hpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\Oreginum\Model.hpp">
+      <Filter>Source Files\Oreginum</Filter>
     </ClInclude>
-    <ClInclude Include="src\Keyboard.hpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\Oreginum\Mouse.hpp">
+      <Filter>Source Files\Oreginum</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Oreginum\Window.hpp">
+      <Filter>Source Files\Oreginum</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Device.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Oreginum\Keyboard.hpp">
+      <Filter>Source Files\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

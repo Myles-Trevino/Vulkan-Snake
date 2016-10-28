@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3A8B6E43-8B4D-4633-9A6F-80C9CEE1AE67}</ProjectGuid>
     <RootNamespace>OreginumEngine</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -115,6 +115,9 @@
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/std:c++latest %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -125,23 +128,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Camera.cpp" />
-    <ClCompile Include="src\Keyboard.cpp" />
-    <ClCompile Include="src\Mouse.cpp" />
     <ClCompile Include="src\Main.cpp" />
-    <ClCompile Include="src\Core.cpp" />
-    <ClCompile Include="src\Model.cpp" />
-    <ClCompile Include="src\Vulkan.cpp" />
-    <ClCompile Include="src\Window.cpp" />
+    <ClCompile Include="src\Oreginum\Camera.cpp" />
+    <ClCompile Include="src\Oreginum\Core.cpp" />
+    <ClCompile Include="src\Oreginum\Keyboard.cpp" />
+    <ClCompile Include="src\Oreginum\Model.cpp" />
+    <ClCompile Include="src\Oreginum\Mouse.cpp" />
+    <ClCompile Include="src\Oreginum\Window.cpp" />
+    <ClCompile Include="src\Vulkan\Buffer.cpp" />
+    <ClCompile Include="src\Vulkan\Core.cpp" />
+    <ClCompile Include="src\Vulkan\Device.cpp" />
+    <ClCompile Include="src\Vulkan\Instance.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Camera.hpp" />
-    <ClInclude Include="src\Core.hpp" />
-    <ClInclude Include="src\Keyboard.hpp" />
-    <ClInclude Include="src\Mouse.hpp" />
-    <ClInclude Include="src\Model.hpp" />
-    <ClInclude Include="src\Vulkan.hpp" />
-    <ClInclude Include="src\Window.hpp" />
+    <ClInclude Include="src\Oreginum\Camera.hpp" />
+    <ClInclude Include="src\Oreginum\Core.hpp" />
+    <ClInclude Include="src\Oreginum\Keyboard.hpp" />
+    <ClInclude Include="src\Oreginum\Model.hpp" />
+    <ClInclude Include="src\Oreginum\Mouse.hpp" />
+    <ClInclude Include="src\Oreginum\Window.hpp" />
+    <ClInclude Include="src\Vulkan\Buffer.hpp" />
+    <ClInclude Include="src\Vulkan\Core.hpp" />
+    <ClInclude Include="src\Vulkan\Device.hpp" />
+    <ClInclude Include="src\Vulkan\Instance.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
