@@ -18,7 +18,7 @@ namespace Oreginum
 		bool update();
 
 		uint32_t get_refresh_rate();
-		glm::ivec2 get_screen_resolution();
+		const glm::ivec2& get_screen_resolution();
 		float get_time();
 		float get_delta();
 	}

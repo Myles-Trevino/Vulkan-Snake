@@ -136,9 +136,21 @@
     <ClCompile Include="src\Oreginum\Mouse.cpp" />
     <ClCompile Include="src\Oreginum\Window.cpp" />
     <ClCompile Include="src\Vulkan\Buffer.cpp" />
+    <ClCompile Include="src\Vulkan\Command Buffer.cpp" />
+    <ClCompile Include="src\Vulkan\Command Pool.cpp" />
     <ClCompile Include="src\Vulkan\Core.cpp" />
+    <ClCompile Include="src\Vulkan\Descriptor.cpp" />
     <ClCompile Include="src\Vulkan\Device.cpp" />
+    <ClCompile Include="src\Vulkan\Fence.cpp" />
+    <ClCompile Include="src\Vulkan\Framebuffer.cpp" />
+    <ClCompile Include="src\Vulkan\Image View.cpp" />
+    <ClCompile Include="src\Vulkan\Image.cpp" />
     <ClCompile Include="src\Vulkan\Instance.cpp" />
+    <ClCompile Include="src\Vulkan\Pipeline.cpp" />
+    <ClCompile Include="src\Vulkan\Render Pass.cpp" />
+    <ClCompile Include="src\Vulkan\Semaphore.cpp" />
+    <ClCompile Include="src\Vulkan\Shader.cpp" />
+    <ClCompile Include="src\Vulkan\Swapchain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Oreginum\Camera.hpp" />
@@ -148,9 +160,21 @@
     <ClInclude Include="src\Oreginum\Mouse.hpp" />
     <ClInclude Include="src\Oreginum\Window.hpp" />
     <ClInclude Include="src\Vulkan\Buffer.hpp" />
+    <ClInclude Include="src\Vulkan\Command Buffer.hpp" />
+    <ClInclude Include="src\Vulkan\Command Pool.hpp" />
     <ClInclude Include="src\Vulkan\Core.hpp" />
+    <ClInclude Include="src\Vulkan\Descriptor.hpp" />
     <ClInclude Include="src\Vulkan\Device.hpp" />
+    <ClInclude Include="src\Vulkan\Fence.hpp" />
+    <ClInclude Include="src\Vulkan\Framebuffer.hpp" />
+    <ClInclude Include="src\Vulkan\Image View.hpp" />
+    <ClInclude Include="src\Vulkan\Image.hpp" />
     <ClInclude Include="src\Vulkan\Instance.hpp" />
+    <ClInclude Include="src\Vulkan\Pipeline.hpp" />
+    <ClInclude Include="src\Vulkan\Render Pass.hpp" />
+    <ClInclude Include="src\Vulkan\Semaphore.hpp" />
+    <ClInclude Include="src\Vulkan\Shader.hpp" />
+    <ClInclude Include="src\Vulkan\Swapchain.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

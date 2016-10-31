@@ -63,8 +63,8 @@ void Oreginum::Camera::update()
 		static_cast<float>(Window::get_resolution().y), NEAR_CLIP, FAR_CLIP);
 }
 
-glm::fvec3 Oreginum::Camera::get_position(){ return position; }
+const glm::fvec3& Oreginum::Camera::get_position(){ return position; }
 
-glm::fmat4 Oreginum::Camera::get_view(){ return view; }
+const glm::fmat4& Oreginum::Camera::get_view(){ return view; }
 
-glm::fmat4 Oreginum::Camera::get_projection(){ return projection; }
+const glm::fmat4& Oreginum::Camera::get_projection(){ return projection; }

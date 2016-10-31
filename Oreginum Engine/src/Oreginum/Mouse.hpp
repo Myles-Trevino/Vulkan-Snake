@@ -15,7 +15,7 @@ namespace Oreginum
 		void update();
 		void set_pressed(Button button, bool pressed = true);
 
-		glm::ivec2 get_delta();
+		const glm::ivec2& get_delta();
 		bool is_locked();
 		bool was_pressed(Button button);
 		bool is_held(Button button);

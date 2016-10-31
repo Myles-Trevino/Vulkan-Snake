@@ -1,4 +1,5 @@
 #include <chrono>
+#define NOMINMAX
 #include <windows.h>
 #include "../Vulkan/Core.hpp"
 #include "Window.hpp"
@@ -66,7 +67,7 @@ bool Oreginum::Core::update()
 
 uint32_t Oreginum::Core::get_refresh_rate(){ return refresh_rate; }
 
-glm::ivec2 Oreginum::Core::get_screen_resolution(){ return screen_resolution; }
+const glm::ivec2& Oreginum::Core::get_screen_resolution(){ return screen_resolution; }
 
 float Oreginum::Core::get_time(){ return static_cast<float>(time_since_epoch()-initial_time); }
 

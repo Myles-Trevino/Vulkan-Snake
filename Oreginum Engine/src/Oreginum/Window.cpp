@@ -78,8 +78,8 @@ void Oreginum::Window::initialize(const std::string& title, const glm::ivec2& re
 
 void Oreginum::Window::destroy()
 {
-	DestroyWindow(window);
-	FreeConsole();
+	//DestroyWindow(window);
+	//FreeConsole();
 }
 
 void Oreginum::Window::update()
@@ -115,7 +115,7 @@ HINSTANCE Oreginum::Window::get_instance(){ return instance; }
 
 HWND Oreginum::Window::get(){ return window; }
 
-std::string Oreginum::Window::get_title(){ return title; }
+const std::string& Oreginum::Window::get_title(){ return title; }
 
 glm::ivec2 Oreginum::Window::get_resolution()
 {

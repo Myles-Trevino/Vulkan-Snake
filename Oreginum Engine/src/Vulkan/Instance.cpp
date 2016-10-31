@@ -3,7 +3,7 @@
 #include "../Oreginum/Window.hpp"
 #include "Instance.hpp"
 
-Oreginum::Vulkan::Instance::~Instance()
+void Oreginum::Vulkan::Instance::destroy()
 {
 	if(surface) vkDestroySurfaceKHR(instance, surface, nullptr);
 	if(debug_callback)
@@ -17,6 +17,8 @@ Oreginum::Vulkan::Instance::~Instance()
 
 void Oreginum::Vulkan::Instance::initialize(bool debug)
 {
+	destroy();
+
 	VkApplicationInfo application_information;
 	application_information.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	application_information.pNext = nullptr;

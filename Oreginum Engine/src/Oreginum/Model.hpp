@@ -10,9 +10,9 @@ namespace Oreginum
 
 		Model(const std::string& model);
 
-		std::vector<Vertex> get_vertices() const { return vertices; }
-		std::vector<uint16_t> get_indices() const { return indices; }
-		std::string get_texture() const { return texture; }
+		const std::vector<Vertex>& get_vertices() const { return vertices; }
+		const std::vector<uint16_t>& get_indices() const { return indices; }
+		const std::string& get_texture() const { return texture; }
 
 	private:
 		std::vector<Vertex> vertices;

@@ -1,4 +1,5 @@
-#include <Windows.h>
+#define NOMINMAX
+#include <windows.h>
 #include "Core.hpp"
 #include "Window.hpp"
 #include "Keyboard.hpp"
@@ -49,7 +50,7 @@ void Oreginum::Mouse::update()
 
 void Oreginum::Mouse::set_pressed(Button button, bool pressed){ ::pressed[button] = pressed; }
 
-glm::ivec2 Oreginum::Mouse::get_delta(){ return delta; }
+const glm::ivec2& Oreginum::Mouse::get_delta(){ return delta; }
 
 bool Oreginum::Mouse::is_locked(){ return locked; }
 

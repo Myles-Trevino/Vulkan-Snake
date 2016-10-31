@@ -1,4 +1,5 @@
 #pragma once
+#define NOMINMAX
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <Vulkan/vulkan.h>
 #include "Device.hpp"
@@ -9,13 +10,13 @@ namespace Oreginum::Vulkan
 	{
 	public:
 		Buffer(){}
-		~Buffer();
+		~Buffer(){ destroy(); };
 
 		void initialize(const Device *device, const void *data = nullptr, size_t size = 0,
 			VkBufferUsageFlags flags = NULL);
 		void fill(const void *data = nullptr, size_t size = 0);
 
-		const VkBuffer *get() const { return &buffer; }
+		VkBuffer get() const { return buffer; }
 
 	private:
 		const Device *device;
@@ -23,6 +24,8 @@ namespace Oreginum::Vulkan
 		VkDeviceMemory buffer_memory;
 		VkBuffer stage;
 		VkDeviceMemory stage_memory;
+
+		void destroy();
 
 		void create_buffer(VkBuffer *buffer, VkDeviceMemory *memory, size_t size,
 			VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_property_flags,

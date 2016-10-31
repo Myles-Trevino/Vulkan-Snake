@@ -1,4 +1,5 @@
 #pragma once
+#define NOMINMAX
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <Vulkan/vulkan.h>
 #define GLM_FORECE_DEPTH_ZERO_TO_ONE
@@ -23,6 +24,5 @@ namespace Oreginum::Vulkan::Core
 	uint32_t find_memory(uint32_t type, VkMemoryPropertyFlags properties);
 	VkCommandBuffer begin_single_time_commands();
 	void end_single_time_commands(VkCommandBuffer command_buffer);
-
 	void render();
 }

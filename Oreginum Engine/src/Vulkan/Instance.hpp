@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#define NOMINMAX
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <Vulkan/vulkan.h>
 
@@ -9,7 +10,7 @@ namespace Oreginum::Vulkan
 	{
 	public:
 		Instance(){};
-		~Instance();
+		~Instance(){ destroy(); }
 
 		void initialize(bool debug = false);
 
@@ -23,6 +24,8 @@ namespace Oreginum::Vulkan
 		VkInstance instance;
 		VkDebugReportCallbackEXT debug_callback;
 		VkSurfaceKHR surface;
+
+		void destroy();
 
 		void create_debug_callback();
 		void create_surface();

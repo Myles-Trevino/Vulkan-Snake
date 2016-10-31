@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include <windows.h>
 #define GLM_FORECE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_RADIANS
@@ -7,9 +8,11 @@
 #include "Oreginum/Keyboard.hpp"
 #include "Oreginum/Mouse.hpp"
 #include "Vulkan/Core.hpp"
+#include <iostream>
 
 /*
-	Removed copy data old.
+	Remove swapchain extent variable.
+	Remove copy_data_old().
 	Use push constants for uniforms.
 	Optimize image creation.
 */

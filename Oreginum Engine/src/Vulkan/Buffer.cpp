@@ -1,3 +1,4 @@
+#define NOMINMAX
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <Vulkan/vulkan.h>
 #include "../Oreginum/Core.hpp"
@@ -9,6 +10,7 @@ void Oreginum::Vulkan::Buffer::initialize(const Device *device,
 {
 	this->device = device;
 	if(!size) return;
+	destroy();
 	create_buffer(&stage, &stage_memory, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 	create_buffer(&buffer, &buffer_memory, size, flags |
@@ -17,7 +19,7 @@ void Oreginum::Vulkan::Buffer::initialize(const Device *device,
 	fill(data, size);
 }
 
-Oreginum::Vulkan::Buffer::~Buffer()
+void Oreginum::Vulkan::Buffer::destroy()
 {
 	if(buffer) vkDestroyBuffer(device->get(), buffer, nullptr);
 	if(buffer_memory) vkFreeMemory(device->get(), buffer_memory, nullptr);
@@ -25,9 +27,10 @@ Oreginum::Vulkan::Buffer::~Buffer()
 	if(stage_memory) vkFreeMemory(device->get(), stage_memory, nullptr);
 }
 
-void Oreginum::Vulkan::Buffer::create_buffer(VkBuffer *buffer, VkDeviceMemory *memory, size_t size, 
-	VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_property_flags, VkSharingMode sharing_mode,
-	VkDeviceSize offset, uint32_t queue_family_index_count, const uint32_t *queue_family_indices)
+void Oreginum::Vulkan::Buffer::create_buffer(VkBuffer *buffer, VkDeviceMemory *memory,
+	size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_property_flags,
+	VkSharingMode sharing_mode, VkDeviceSize offset, uint32_t queue_family_index_count,
+	const uint32_t *queue_family_indices)
 {
 	//Create buffer
 	VkBufferCreateInfo buffer_information;

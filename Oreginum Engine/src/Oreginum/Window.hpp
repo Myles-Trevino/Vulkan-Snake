@@ -18,7 +18,7 @@ namespace Oreginum
 
 		HINSTANCE get_instance();
 		HWND get();
-		std::string get_title();
+		const std::string& get_title();
 		glm::ivec2 get_resolution();
 		glm::ivec2 get_position();
 		bool was_closed();

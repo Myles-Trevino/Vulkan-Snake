@@ -4,11 +4,12 @@
 #include "Core.hpp"
 #include "Device.hpp"
 
-Oreginum::Vulkan::Device::~Device(){ if(device) vkDestroyDevice(device, nullptr); }
+void Oreginum::Vulkan::Device::destroy(){ if(device) vkDestroyDevice(device, nullptr); }
 
 void Oreginum::Vulkan::Device::initialize(const Instance *instance)
 {
 	this->instance = instance;
+	destroy();
 
 	select_gpu();
 	create_device();

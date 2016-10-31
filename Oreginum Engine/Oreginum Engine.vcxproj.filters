@@ -54,6 +54,42 @@
     <ClCompile Include="src\Vulkan\Device.cpp">
       <Filter>Source Files\Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="src\Vulkan\Swapchain.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Render Pass.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Descriptor.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Pipeline.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Shader.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Semaphore.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Fence.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Command Buffer.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Command Pool.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Framebuffer.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Image.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Image View.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Vulkan\Buffer.hpp">
@@ -83,7 +119,43 @@
     <ClInclude Include="src\Vulkan\Device.hpp">
       <Filter>Source Files\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="src\Vulkan\Swapchain.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Render Pass.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Descriptor.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Pipeline.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Shader.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
     <ClInclude Include="src\Oreginum\Keyboard.hpp">
+      <Filter>Source Files\Oreginum</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Semaphore.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Fence.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Command Buffer.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Command Pool.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Framebuffer.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Image.hpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Image View.hpp">
       <Filter>Source Files\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
