@@ -1,7 +1,6 @@
 #include <chrono>
 #define NOMINMAX
 #include <windows.h>
-#include "../Vulkan/Core.hpp"
 #include "Window.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
@@ -20,9 +19,8 @@ namespace
 		(std::chrono::high_resolution_clock::now().time_since_epoch()).count()/1000000.0; }
 };
 
-void Oreginum::Core::initialize(const std::string& title, const glm::ivec2& resolution,
-	const Oreginum::Model& model, const void *uniform_buffer_object,
-	size_t uniform_buffer_object_size, bool debug)
+void Oreginum::Core::initialize(const std::string& title,
+	const glm::ivec2& resolution, bool debug)
 {
 	screen_resolution = {GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
 	DEVMODE devmode;
@@ -32,14 +30,12 @@ void Oreginum::Core::initialize(const std::string& title, const glm::ivec2& reso
 	initial_time = time_since_epoch();
 
 	Window::initialize(title, resolution, debug);
-	Vulkan::Core::initialize(model, uniform_buffer_object, uniform_buffer_object_size, debug);
 	Mouse::initialize();
 }
 
 void Oreginum::Core::destroy()
 {
 	Mouse::destroy();
-	Vulkan::Core::destroy();
 	Window::destroy();
 }
 

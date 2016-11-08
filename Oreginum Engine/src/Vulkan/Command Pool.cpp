@@ -1,21 +1,13 @@
 #include "../Oreginum/Core.hpp"
 #include "Command Pool.hpp"
 
-void Oreginum::Vulkan::Command_Pool::destroy()
-{ if(command_pool) vkDestroyCommandPool(device->get(), command_pool, nullptr); }
-
-void Oreginum::Vulkan::Command_Pool::initialize(const Device *device,
-	VkCommandPoolCreateFlags flags, uint32_t queue_family_index)
+Oreginum::Vulkan::Command_Pool::Command_Pool(const Device& device,
+	 uint32_t queue_family_index, vk::CommandPoolCreateFlags flags) : device(device)
 {
-	this->device = device;
-	destroy();
+	vk::CommandPoolCreateInfo pool_information{flags, queue_family_index};
 
-	VkCommandPoolCreateInfo pool_information;
-	pool_information.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	pool_information.pNext = nullptr;
-	pool_information.flags = flags;
-	pool_information.queueFamilyIndex = queue_family_index;
-
-	if(vkCreateCommandPool(device->get(), &pool_information, nullptr, &command_pool) !=
-		VK_SUCCESS) Oreginum::Core::error("Could not create a Vulkan command pool.");
+	if(device.get().createCommandPool(&pool_information, nullptr, &command_pool) !=
+		vk::Result::eSuccess) Oreginum::Core::error("Could not create a Vulkan command pool.");
 }
+
+Oreginum::Vulkan::Command_Pool::~Command_Pool(){ device.get().destroyCommandPool(command_pool); }

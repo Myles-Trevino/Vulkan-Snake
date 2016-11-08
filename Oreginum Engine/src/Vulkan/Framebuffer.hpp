@@ -1,27 +1,22 @@
 #pragma once
 #include "Device.hpp"
 #include "Render Pass.hpp"
-#include "Image View.hpp"
+#include "Image.hpp"
 
 namespace Oreginum::Vulkan
 {
 	class Framebuffer
 	{
 	public:
-		Framebuffer(){};
-		~Framebuffer(){ destroy(); };
+		Framebuffer(const Device& device, const Render_Pass& render_pass, 
+			const Image& image, const Image& depth_image, vk::Extent2D extent);
+		~Framebuffer();
 
-		void initialize(const Device *device, const Render_Pass& render_pass, 
-			Image_View image_view, Image_View depth_image_view,
-			VkExtent2D extent);
-
-		VkFramebuffer get() const { return framebuffer; }
+		const vk::Framebuffer& get() const { return framebuffer; }
 
 	private:
-		const Device *device;
+		const Device& device;
 
-		VkFramebuffer framebuffer;
-
-		void destroy();
+		vk::Framebuffer framebuffer;
 	};
 }

@@ -2,26 +2,27 @@
 #include "../Oreginum/Core.hpp"
 #include "Shader.hpp"
 
-Oreginum::Vulkan::Shader::~Shader()
-{ for(VkShaderModule m : modules) vkDestroyShaderModule(device->get(), m, nullptr); }
-
-void Oreginum::Vulkan::Shader::add(const std::string& shader, VkShaderStageFlagBits stage)
+Oreginum::Vulkan::Shader::Shader(const Device& device, const std::vector<
+	std::pair<std::string, vk::ShaderStageFlagBits>>& shaders) : device(device)
 {
-	modules.push_back(create_shader_module(shader));
+	for(const auto& s : shaders)
+	{
+		modules.push_back(create_shader_module(s.first));
 
-	VkPipelineShaderStageCreateInfo shader_stage_information;
-	shader_stage_information.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	shader_stage_information.pNext = nullptr;
-	shader_stage_information.flags = NULL;
-	shader_stage_information.stage = stage;
-	shader_stage_information.module = modules.back();
-	shader_stage_information.pName = "main";
-	shader_stage_information.pSpecializationInfo = nullptr;
+		vk::PipelineShaderStageCreateInfo shader_stage_information;
+		shader_stage_information.setStage(s.second);
+		shader_stage_information.setModule(modules.back());
+		shader_stage_information.setPName("main");
+		shader_stage_information.setPSpecializationInfo(nullptr);
 
-	information.push_back(shader_stage_information);
+		information.push_back(shader_stage_information);
+	}
 }
 
-VkShaderModule Oreginum::Vulkan::Shader::create_shader_module(const std::string& shader)
+Oreginum::Vulkan::Shader::~Shader()
+{ for(vk::ShaderModule m : modules) device.get().destroyShaderModule(m); }
+
+vk::ShaderModule Oreginum::Vulkan::Shader::create_shader_module(const std::string& shader)
 {
 	std::ifstream file{"Resources/Shaders/"+shader+".spv", std::ios::ate | std::ios::binary};
 	if(!file.is_open()) Oreginum::Core::error("Could not open shader \""+shader+"\".");
@@ -31,17 +32,13 @@ VkShaderModule Oreginum::Vulkan::Shader::create_shader_module(const std::string&
 	file.read(data.data(), size);
 	file.close();
 
-	VkShaderModuleCreateInfo shader_module_information;
-	shader_module_information.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	shader_module_information.pNext = nullptr;
-	shader_module_information.flags = NULL;
-	shader_module_information.codeSize = data.size();
-	shader_module_information.pCode = reinterpret_cast<const uint32_t *>(data.data());
+	vk::ShaderModuleCreateInfo shader_module_information;
+	shader_module_information.setCodeSize(data.size());
+	shader_module_information.setPCode(reinterpret_cast<const uint32_t *>(data.data()));
 
-	VkShaderModule shader_module;
-	if(vkCreateShaderModule(device->get(), &shader_module_information,
-		nullptr, &shader_module) != VK_SUCCESS)
+	vk::ShaderModule shader_module;
+	if(device.get().createShaderModule(&shader_module_information,
+		nullptr, &shader_module) != vk::Result::eSuccess)
 		Oreginum::Core::error("Could not create Vulkan shader module \""+shader+"\".");
-
 	return shader_module;
 }

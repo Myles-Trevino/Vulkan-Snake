@@ -1,89 +1,82 @@
+#include "../Oreginum/Core.hpp"
 #include "Core.hpp"
 #include "Render Pass.hpp"
 
-void Oreginum::Vulkan::Render_Pass::destroy()
-{ if(render_pass) vkDestroyRenderPass(device->get(), render_pass, nullptr); }
-
-void Oreginum::Vulkan::Render_Pass::initialize(const Device *device)
+Oreginum::Vulkan::Render_Pass::Render_Pass(const Device& device) : device(device)
 {
-	this->device = device;
-	destroy();
-
 	//Attachments
-	VkAttachmentDescription color_attachment_description;
-	color_attachment_description.flags = NULL;
-	color_attachment_description.format = Oreginum::Vulkan::Core::SWAPCHAIN_FORMAT.format;
-	color_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
-	color_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	color_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	color_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	color_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	vk::AttachmentDescription color_attachment_description;
+	color_attachment_description.setFormat(Oreginum::Vulkan::Core::SWAPCHAIN_FORMAT.format);
+	color_attachment_description.setSamples(vk::SampleCountFlagBits::e1);
+	color_attachment_description.setLoadOp(vk::AttachmentLoadOp::eClear);
+	color_attachment_description.setStoreOp(vk::AttachmentStoreOp::eStore);
+	color_attachment_description.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
+	color_attachment_description.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare);
+	color_attachment_description.setInitialLayout(vk::ImageLayout::eUndefined);
+	color_attachment_description.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
 
-	VkAttachmentDescription depth_attachment_description;
-	depth_attachment_description.flags = NULL;
-	depth_attachment_description.format = Oreginum::Vulkan::Core::DEPTH_FORMAT;
-	depth_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
-	depth_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depth_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depth_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	depth_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depth_attachment_description.initialLayout =
-		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	depth_attachment_description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	vk::AttachmentDescription depth_attachment_description;
+	depth_attachment_description.setFormat(Oreginum::Vulkan::Core::DEPTH_FORMAT);
+	depth_attachment_description.setSamples(vk::SampleCountFlagBits::e1);
+	depth_attachment_description.setLoadOp(vk::AttachmentLoadOp::eClear);
+	depth_attachment_description.setStoreOp(vk::AttachmentStoreOp::eDontCare);
+	depth_attachment_description.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
+	depth_attachment_description.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare);
+	depth_attachment_description.setInitialLayout
+	(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	depth_attachment_description.setFinalLayout
+	(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
 	//Subpasses
-	VkAttachmentReference color_attachment_reference;
-	color_attachment_reference.attachment = 0;
-	color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	vk::AttachmentReference color_attachment_reference;
+	color_attachment_reference.setAttachment(0);
+	color_attachment_reference.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
 
-	VkAttachmentReference depth_attachment_reference;
-	depth_attachment_reference.attachment = 1;
-	depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	vk::AttachmentReference depth_attachment_reference;
+	depth_attachment_reference.setAttachment(1);
+	depth_attachment_reference.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
-	VkSubpassDescription subpass_description;
-	subpass_description.flags = NULL;
-	subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass_description.inputAttachmentCount = 0;
-	subpass_description.pInputAttachments = nullptr;
-	subpass_description.colorAttachmentCount = 1;
-	subpass_description.pColorAttachments = &color_attachment_reference;
-	subpass_description.pResolveAttachments = nullptr;
-	subpass_description.pDepthStencilAttachment = &depth_attachment_reference;
-	subpass_description.preserveAttachmentCount = 0;
-	subpass_description.pPreserveAttachments = nullptr;
+	vk::SubpassDescription subpass_description;
+	subpass_description.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics);
+	subpass_description.setInputAttachmentCount(0);
+	subpass_description.setPInputAttachments(nullptr);
+	subpass_description.setColorAttachmentCount(1);
+	subpass_description.setPColorAttachments(&color_attachment_reference);
+	subpass_description.setPResolveAttachments(nullptr);
+	subpass_description.setPDepthStencilAttachment(&depth_attachment_reference);
+	subpass_description.setPreserveAttachmentCount(0);
+	subpass_description.setPPreserveAttachments(nullptr);
 
 	//Dependencies
-	std::array<VkSubpassDependency, 2> dependencies;
-	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass = 0;
-	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-	dependencies[1].srcSubpass = 0;
-	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+	std::array<vk::SubpassDependency, 2> dependencies;
+	dependencies[0].setSrcSubpass(VK_SUBPASS_EXTERNAL);
+	dependencies[0].setDstSubpass(0);
+	dependencies[0].setSrcStageMask(vk::PipelineStageFlagBits::eBottomOfPipe);
+	dependencies[0].setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	dependencies[0].setSrcAccessMask(vk::AccessFlagBits::eMemoryRead);
+	dependencies[0].setDstAccessMask(vk::AccessFlagBits::eColorAttachmentWrite);
+	dependencies[0].setDependencyFlags(vk::DependencyFlagBits::eByRegion);
+
+	dependencies[1].setSrcSubpass(0);
+	dependencies[1].setDstSubpass(VK_SUBPASS_EXTERNAL);
+	dependencies[1].setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	dependencies[1].setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	dependencies[1].setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentWrite);
+	dependencies[1].setDstAccessMask(vk::AccessFlagBits::eMemoryRead);
+	dependencies[1].setDependencyFlags(vk::DependencyFlagBits::eByRegion);
 
 	//Render pass
-	std::array<VkAttachmentDescription, 2> attachments
+	std::array<vk::AttachmentDescription, 2> attachments
 	{color_attachment_description, depth_attachment_description};
-	VkRenderPassCreateInfo render_pass_information;
-	render_pass_information.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	render_pass_information.pNext = nullptr;
-	render_pass_information.flags = NULL;
-	render_pass_information.attachmentCount = static_cast<uint32_t>(attachments.size());
-	render_pass_information.pAttachments = attachments.data();
-	render_pass_information.subpassCount = 1;
-	render_pass_information.pSubpasses = &subpass_description;
-	render_pass_information.dependencyCount = static_cast<uint32_t>(dependencies.size());
-	render_pass_information.pDependencies = dependencies.data();
+	vk::RenderPassCreateInfo render_pass_information;
+	render_pass_information.setAttachmentCount(static_cast<uint32_t>(attachments.size()));
+	render_pass_information.setPAttachments(attachments.data());
+	render_pass_information.setSubpassCount(1);
+	render_pass_information.setPSubpasses(&subpass_description);
+	render_pass_information.setDependencyCount(static_cast<uint32_t>(dependencies.size()));
+	render_pass_information.setPDependencies(dependencies.data());
 
-	vkCreateRenderPass(device->get(), &render_pass_information, nullptr, &render_pass);
+	if(device.get().createRenderPass(&render_pass_information,
+		nullptr, &render_pass) != vk::Result::eSuccess)
+		Oreginum::Core::error("Could not create a Vulkan render pass.");
 }

@@ -1,19 +1,12 @@
 #include "../Oreginum/Core.hpp"
 #include "Semaphore.hpp"
 
-void Oreginum::Vulkan::Semaphore::destroy()
-{ if(semaphore) vkDestroySemaphore(device->get(), semaphore, nullptr); }
-
-void Oreginum::Vulkan::Semaphore::initialize(const Device *device)
+Oreginum::Vulkan::Semaphore::Semaphore(const Device& device) : device(device)
 {
-	this->device = device;
-	destroy();
+	vk::SemaphoreCreateInfo semaphore_information;
 
-	VkSemaphoreCreateInfo semaphore_information;
-	semaphore_information.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	semaphore_information.pNext = nullptr;
-	semaphore_information.flags = NULL;
-
-	if(vkCreateSemaphore(device->get(), &semaphore_information, nullptr, &semaphore) != 
-		VK_SUCCESS) Oreginum::Core::error("Could not create Vulkan semaphores.");
+	if(device.get().createSemaphore(&semaphore_information, nullptr, &semaphore) != 
+		vk::Result::eSuccess) Oreginum::Core::error("Could not create a Vulkan semaphore.");
 }
+
+Oreginum::Vulkan::Semaphore::~Semaphore(){ device.get().destroySemaphore(semaphore); }

@@ -1,10 +1,11 @@
 #pragma once
 #define NOMINMAX
 #define VK_USE_PLATFORM_WIN32_KHR
-#include <Vulkan/vulkan.h>
+#define VULKAN_HPP_NO_EXCEPTIONS
+#include <Vulkan/vulkan.hpp>
 #include "Device.hpp"
 #include "Shader.hpp"
-#include "Descriptor.hpp"
+#include "Descriptor Set.hpp"
 #include "Render Pass.hpp"
 
 namespace Oreginum::Vulkan
@@ -12,21 +13,17 @@ namespace Oreginum::Vulkan
 	class Pipeline
 	{
 	public:
-		Pipeline(){};
-		~Pipeline(){ destroy(); }
+		Pipeline(const Device& device, const Shader& shader,
+			const Descriptor_Set& descriptor_set, const Render_Pass& render_pass);
+		~Pipeline();
 
-		void initialize(const Device *device, const Shader& shader,
-			const Descriptor& descriptor, const Render_Pass& render_pass);
-
-		VkPipeline get() const { return pipeline; }
-		VkPipelineLayout get_layout() const { return pipeline_layout; }
+		const vk::Pipeline& get() const { return pipeline; }
+		const vk::PipelineLayout& get_layout() const { return pipeline_layout; }
 
 	private:
-		const Device *device;
+		const Device& device;
 
-		VkPipelineLayout pipeline_layout;
-		VkPipeline pipeline;
-
-		void destroy();
+		vk::PipelineLayout pipeline_layout;
+		vk::Pipeline pipeline;
 	};
 }

@@ -1,48 +1,44 @@
 #pragma once
 #include "Core.hpp"
 #include "Device.hpp"
-#include "Image View.hpp"
+#include "Command Buffer.hpp"
 
 namespace Oreginum::Vulkan
 {
 	class Image
 	{
 	public:
-		Image(){};
-		~Image(){ destroy(); };
+		Image(const Device& device, const Command_Buffer& command_buffer,
+			const vk::Extent2D& extent,
+			vk::Format format = Oreginum::Vulkan::Core::IMAGE_FORMAT,
+			vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor,
+			vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eColorAttachment);
+		Image(const Device& device, const Command_Buffer& command_buffer, vk::Image image,
+			vk::Format format = Oreginum::Vulkan::Core::IMAGE_FORMAT,
+			vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor)
+			: device(device), command_buffer(command_buffer)
+		{ create_image_view(format, aspect); }
+		~Image();
 
-		void initialize(const Device *device, const glm::uvec2& resolution,
-			VkFormat format = Oreginum::Vulkan::Core::IMAGE_FORMAT,
-			VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT,
-			VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL,
-			VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			uint32_t mip_levels = 1, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT,
-			VkImageType type = VK_IMAGE_TYPE_2D,
-			VkImageViewType view_type = VK_IMAGE_VIEW_TYPE_2D, uint32_t array_layers = 1,
-			VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE,
-			const std::vector<uint32_t>& queue_family_indices = {},
-			VkComponentMapping components = {VK_COMPONENT_SWIZZLE_IDENTITY,
-			VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, 
-			VK_COMPONENT_SWIZZLE_IDENTITY});
-
-		void transition(VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout,
-			VkAccessFlags source_access_flags, VkAccessFlags destination_access_flags,
-			VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+		void transition(vk::Format format, vk::ImageLayout old_layout,
+			vk::ImageLayout new_layout, vk::AccessFlags source_access_flags,
+			vk::AccessFlags destination_access_flags,
+			vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor,
 			uint32_t source_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
 			uint32_t destination_family_queue_index = VK_QUEUE_FAMILY_IGNORED);
 
-		VkImage get() const { return image; }
-		VkDeviceMemory get_memory() const { return image_memory; }
-		const Image_View& get_view() const { return image_view; }
+		const vk::Image& get() const { return image; }
+		const vk::ImageView& get_view() const { return *image_view; }
 
 	private:
-		const Device *device;
+		const Device& device;
+		const Command_Buffer& command_buffer;
 
-		VkImage image;
-		VkDeviceMemory image_memory;
-		Image_View image_view;
+		vk::Image image;
+		vk::DeviceMemory image_memory;
+		std::shared_ptr<vk::ImageView> image_view = std::make_shared<vk::ImageView>();
 
-		void destroy();
+		void create_image_view(vk::Format format = Core::IMAGE_FORMAT,
+			vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor);
 	};
 }

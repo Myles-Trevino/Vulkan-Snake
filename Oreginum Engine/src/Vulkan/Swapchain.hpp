@@ -1,28 +1,28 @@
 #pragma once
 #include "Instance.hpp"
 #include "Device.hpp"
-#include "Image View.hpp"
+#include "Image.hpp"
+#include "Surface.hpp"
 
 namespace Oreginum::Vulkan
 {
 	class Swapchain
 	{
 	public:
-		Swapchain(){}
-		~Swapchain();
+		Swapchain(const Instance& instance, const Surface& surface,
+			Device *device, const Command_Buffer& command_buffer);
+		~Swapchain(){ device->get().destroySwapchainKHR(swapchain); }
 
-		void initialize(const Instance *instance, Device *device);
-
-		VkSwapchainKHR get() const { return swapchain; }
-		const std::vector<Image_View>& get_image_views() const { return image_views; }
-		const VkExtent2D& get_extent() const { return extent; }
+		const vk::SwapchainKHR& get() const { return swapchain; }
+		const std::vector<Image>& get_images() const { return images; }
+		const vk::Extent2D& get_extent() const { return extent; }
 
 	private:
 		Device *device;
+		const Instance& instance;
 
-		VkExtent2D extent;
-		VkSwapchainKHR swapchain;
-		std::vector<VkImage> images;
-		std::vector<Image_View> image_views;
+		vk::Extent2D extent;
+		vk::SwapchainKHR swapchain;
+		std::vector<Image> images;
 	};
 }

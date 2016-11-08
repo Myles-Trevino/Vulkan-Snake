@@ -10,14 +10,14 @@ namespace Oreginum::Vulkan
 		~Fence(){ destroy(); };
 
 		void initialize(const Device *device,
-			VkFenceCreateFlags flags = VK_FENCE_CREATE_SIGNALED_BIT);
+			vk::FenceCreateFlags flags = vk::FenceCreateFlagBits::eSignaled);
 
-		VkFence get() const { return fence; }
+		const vk::Fence& get() const { return fence; }
 
 	private:
 		const Device *device;
 
-		VkFence fence;
+		vk::Fence fence;
 
 		void destroy();
 	};

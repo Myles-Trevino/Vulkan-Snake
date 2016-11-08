@@ -1,36 +1,34 @@
 #pragma once
 #define NOMINMAX
 #define VK_USE_PLATFORM_WIN32_KHR
-#include <Vulkan/vulkan.h>
+#define VULKAN_HPP_NO_EXCEPTIONS
+#include <Vulkan/vulkan.hpp>
 #include "Device.hpp"
+#include "Command Pool.hpp"
 
 namespace Oreginum::Vulkan
 {
 	class Buffer
 	{
 	public:
-		Buffer(){}
-		~Buffer(){ destroy(); };
+		Buffer(const Device& device, const Command_Pool& command_pool,
+			vk::BufferUsageFlags flags, const void *data = nullptr, size_t size = 0);
+		~Buffer();
 
-		void initialize(const Device *device, const void *data = nullptr, size_t size = 0,
-			VkBufferUsageFlags flags = NULL);
-		void fill(const void *data = nullptr, size_t size = 0);
+		void write(const void *data = nullptr, size_t size = 0);
 
-		VkBuffer get() const { return buffer; }
+		const vk::Buffer& get() const { return buffer; }
 
 	private:
-		const Device *device;
-		VkBuffer buffer;
-		VkDeviceMemory buffer_memory;
-		VkBuffer stage;
-		VkDeviceMemory stage_memory;
+		const Device& device;
+		const Command_Pool& command_pool;
 
-		void destroy();
+		vk::Buffer buffer;
+		vk::DeviceMemory buffer_memory;
+		vk::Buffer stage;
+		vk::DeviceMemory stage_memory;
 
-		void create_buffer(VkBuffer *buffer, VkDeviceMemory *memory, size_t size,
-			VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_property_flags,
-			VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE,
-			VkDeviceSize offset = 0, uint32_t queue_family_index_count = 0,
-			const uint32_t *queue_family_indices = nullptr);
+		void create_buffer(vk::Buffer *buffer, vk::DeviceMemory *memory, size_t size,
+			vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memory_property_flags);
 	};
 }

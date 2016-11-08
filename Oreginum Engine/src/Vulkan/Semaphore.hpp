@@ -6,18 +6,14 @@ namespace Oreginum::Vulkan
 	class Semaphore
 	{
 	public:
-		Semaphore(){};
-		~Semaphore(){ destroy(); }
+		Semaphore(const Device& device);
+		~Semaphore();
 
-		void initialize(const Device *device);
-
-		VkSemaphore get() const { return semaphore; }
+		const vk::Semaphore& get() const { return semaphore; }
 
 	private:
-		const Device *device;
+		const Device& device;
 
-		VkSemaphore semaphore;
-
-		void destroy();
+		vk::Semaphore semaphore;
 	};
 }

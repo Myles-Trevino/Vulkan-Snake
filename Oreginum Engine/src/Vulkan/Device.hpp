@@ -3,47 +3,47 @@
 #include <array>
 #define NOMINMAX
 #define VK_USE_PLATFORM_WIN32_KHR
-#include <Vulkan/vulkan.h>
+#define VULKAN_HPP_NO_EXCEPTIONS
+#include <Vulkan/vulkan.hpp>
 #include "Instance.hpp"
+#include "Surface.hpp"
 
 namespace Oreginum::Vulkan
 {
 	class Device
 	{
 	public:
-		Device(){};
-		~Device(){ destroy(); };
+		Device(const Instance& instance, const Surface& surface);
+		~Device(){ device.destroy(); }
 
-		void initialize(const Instance *instance);
 		void update(){ get_gpu_swapchain_information(gpu); }
 
-		VkDevice get() const { return device; }
-		VkPhysicalDevice get_gpu() const { return gpu; }
-		const VkSurfaceCapabilitiesKHR& get_surface_capabilities() const
+		const vk::Device& get() const { return device; }
+		const vk::PhysicalDevice& get_gpu() const { return gpu; }
+		const vk::SurfaceCapabilitiesKHR& get_surface_capabilities() const
 		{ return surface_capabilities; }
 		uint32_t get_graphics_queue_family_index() const { return graphics_queue_family_index; }
-		VkQueue get_graphics_queue() const { return graphics_queue; }
+		const vk::Queue& get_graphics_queue() const { return graphics_queue; }
 
 	private:
-		const Instance *instance;
+		const Instance& instance;
+		const Surface& surface;
+
 		std::array<const char *, 1> gpu_extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-		std::vector<VkExtensionProperties> supported_gpu_extensions;
+		std::vector<vk::ExtensionProperties> supported_gpu_extensions;
 		uint32_t graphics_queue_family_index;
-		VkQueue graphics_queue;
-		VkPhysicalDeviceProperties gpu_properties;
-		VkPhysicalDeviceFeatures gpu_features;
-		VkSurfaceCapabilitiesKHR surface_capabilities;
-		std::vector<VkSurfaceFormatKHR> surface_formats;
-		std::vector<VkPresentModeKHR> swapchain_present_modes;
-		VkPhysicalDevice gpu;
-		VkDevice device;
+		vk::Queue graphics_queue;
+		vk::PhysicalDeviceProperties gpu_properties;
+		vk::PhysicalDeviceFeatures gpu_features;
+		vk::SurfaceCapabilitiesKHR surface_capabilities;
+		std::vector<vk::SurfaceFormatKHR> surface_formats;
+		std::vector<vk::PresentModeKHR> swapchain_present_modes;
+		vk::PhysicalDevice gpu;
+		vk::Device device;
 
-		void destroy();
-
-		void get_gpu_swapchain_information(const VkPhysicalDevice& gpu);
-		void get_gpu_information(const VkPhysicalDevice& gpu);
+		void get_gpu_swapchain_information(const vk::PhysicalDevice& gpu);
+		void get_gpu_information(const vk::PhysicalDevice& gpu);
 		void select_gpu();
 		void create_device();
-		void get_device_queues();
 	};
 }
