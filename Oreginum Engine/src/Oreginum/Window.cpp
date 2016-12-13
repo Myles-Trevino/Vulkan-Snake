@@ -2,7 +2,6 @@
 #include "Window.hpp"
 #include "Mouse.hpp"
 #include "Keyboard.hpp"
-#include <iostream>
 
 namespace
 {
@@ -78,8 +77,8 @@ void Oreginum::Window::initialize(const std::string& title, const glm::ivec2& re
 
 void Oreginum::Window::destroy()
 {
-	//DestroyWindow(window);
-	//FreeConsole();
+	DestroyWindow(window);
+	FreeConsole();
 }
 
 void Oreginum::Window::update()
@@ -102,6 +101,7 @@ void Oreginum::Window::update()
 				Mouse::get_delta().y, get_resolution().x, get_resolution().y, false);
 
 		//Resize
+		/*
 		else if(Mouse::is_held(Button::RIGHT_MOUSE))
 		{
 			glm::ivec2 resolution{glm::clamp(get_resolution()+Mouse::get_delta(),
@@ -109,6 +109,7 @@ void Oreginum::Window::update()
 			MoveWindow(window, get_position().x, get_position().y,
 				resolution.x, resolution.y, false);
 		}
+		*/
 }
 
 HINSTANCE Oreginum::Window::get_instance(){ return instance; }

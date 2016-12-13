@@ -10,19 +10,22 @@ namespace Oreginum::Vulkan
 	class Shader
 	{
 	public:
+		Shader(){}
 		Shader(const Device& device, const std::vector<std::pair<
 			std::string, vk::ShaderStageFlagBits>>& shaders);
+		Shader *Shader::operator=(Shader other){ swap(&other); return this; }
 		~Shader();
 
-		const std::vector<vk::PipelineShaderStageCreateInfo>& get_information() const
+		const std::vector<vk::PipelineShaderStageCreateInfo>& get() const
 		{ return information; }
 
 	private:
-		const Device& device;
-
-		std::vector<vk::ShaderModule> modules;
+		const Device *device;
+		std::shared_ptr<std::vector<vk::ShaderModule>> modules =
+			std::make_unique<std::vector<vk::ShaderModule>>();
 		std::vector<vk::PipelineShaderStageCreateInfo> information;
 
+		void swap(Shader *other);
 		vk::ShaderModule create_shader_module(const std::string& shader);
 	};
 }

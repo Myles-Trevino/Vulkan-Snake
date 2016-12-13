@@ -5,29 +5,36 @@
 #include <Vulkan/vulkan.hpp>
 #include "Device.hpp"
 #include "Command Pool.hpp"
+#include "Command Buffer.hpp"
 
 namespace Oreginum::Vulkan
 {
 	class Buffer
 	{
 	public:
-		Buffer(const Device& device, const Command_Pool& command_pool,
-			vk::BufferUsageFlags flags, const void *data = nullptr, size_t size = 0);
+		Buffer(){}
+		Buffer(const Device& device, const Command_Pool& temporary_command_pool,
+			vk::BufferUsageFlags usage, size_t size, const void *data = nullptr);
+		Buffer *Buffer::operator=(Buffer other){ swap(&other); return this; }
 		~Buffer();
 
+		static uint32_t find_memory(const Device& device, uint32_t type,
+			vk::MemoryPropertyFlags properties);
 		void write(const void *data = nullptr, size_t size = 0);
 
-		const vk::Buffer& get() const { return buffer; }
+		const vk::Buffer& get() const { return *buffer; }
+		size_t get_size() const { return size; }
 
 	private:
-		const Device& device;
-		const Command_Pool& command_pool;
-
-		vk::Buffer buffer;
+		const Device *device;
+		const Command_Pool *temporary_command_pool;
+		size_t size;
+		std::shared_ptr<vk::Buffer> buffer = std::make_shared<vk::Buffer>();
 		vk::DeviceMemory buffer_memory;
 		vk::Buffer stage;
 		vk::DeviceMemory stage_memory;
 
+		void swap(Buffer *other);
 		void create_buffer(vk::Buffer *buffer, vk::DeviceMemory *memory, size_t size,
 			vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memory_property_flags);
 	};

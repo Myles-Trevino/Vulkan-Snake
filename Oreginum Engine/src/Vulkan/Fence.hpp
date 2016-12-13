@@ -6,19 +6,17 @@ namespace Oreginum::Vulkan
 	class Fence
 	{
 	public:
-		Fence(){};
-		~Fence(){ destroy(); };
+		Fence(const Device& device, vk::FenceCreateFlags flags =
+			vk::FenceCreateFlagBits::eSignaled);
+		Fence *Fence::operator=(Fence other){ swap(&other); return this; }
+		~Fence();
 
-		void initialize(const Device *device,
-			vk::FenceCreateFlags flags = vk::FenceCreateFlagBits::eSignaled);
-
-		const vk::Fence& get() const { return fence; }
+		const vk::Fence& get() const { return *fence; }
 
 	private:
 		const Device *device;
+		std::shared_ptr<vk::Fence> fence = std::make_shared<vk::Fence>();
 
-		vk::Fence fence;
-
-		void destroy();
+		void swap(Fence *other);
 	};
 }

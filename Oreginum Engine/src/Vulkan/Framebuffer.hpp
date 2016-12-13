@@ -2,21 +2,26 @@
 #include "Device.hpp"
 #include "Render Pass.hpp"
 #include "Image.hpp"
+#include "Swapchain.hpp"
 
 namespace Oreginum::Vulkan
 {
 	class Framebuffer
 	{
 	public:
-		Framebuffer(const Device& device, const Render_Pass& render_pass, 
-			const Image& image, const Image& depth_image, vk::Extent2D extent);
+		Framebuffer(){}
+		Framebuffer(const Device& device, const Swapchain& swapchain,
+			const Render_Pass& render_pass, const Image& image);
+		Framebuffer *Framebuffer::operator=(Framebuffer other)
+		{ swap(&other); return this; }
 		~Framebuffer();
 
-		const vk::Framebuffer& get() const { return framebuffer; }
+		const vk::Framebuffer& get() const { return *framebuffer; }
 
 	private:
-		const Device& device;
+		const Device *device;
+		std::shared_ptr<vk::Framebuffer> framebuffer = std::make_shared<vk::Framebuffer>();
 
-		vk::Framebuffer framebuffer;
+		void swap(Framebuffer *other);
 	};
 }

@@ -22,6 +22,7 @@ namespace
 void Oreginum::Core::initialize(const std::string& title,
 	const glm::ivec2& resolution, bool debug)
 {
+	srand(time(NULL));
 	screen_resolution = {GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
 	DEVMODE devmode;
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devmode);

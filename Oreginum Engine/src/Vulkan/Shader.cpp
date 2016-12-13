@@ -3,24 +3,27 @@
 #include "Shader.hpp"
 
 Oreginum::Vulkan::Shader::Shader(const Device& device, const std::vector<
-	std::pair<std::string, vk::ShaderStageFlagBits>>& shaders) : device(device)
+	std::pair<std::string, vk::ShaderStageFlagBits>>& shaders) : device(&device)
 {
 	for(const auto& s : shaders)
 	{
-		modules.push_back(create_shader_module(s.first));
-
-		vk::PipelineShaderStageCreateInfo shader_stage_information;
-		shader_stage_information.setStage(s.second);
-		shader_stage_information.setModule(modules.back());
-		shader_stage_information.setPName("main");
-		shader_stage_information.setPSpecializationInfo(nullptr);
-
-		information.push_back(shader_stage_information);
+		modules->push_back(create_shader_module(s.first));
+		information.push_back({{}, s.second, modules->back(), "main", nullptr});
 	}
 }
 
 Oreginum::Vulkan::Shader::~Shader()
-{ for(vk::ShaderModule m : modules) device.get().destroyShaderModule(m); }
+{
+	if(modules.unique())
+		for(const vk::ShaderModule& m : *modules) if(m) device->get().destroyShaderModule(m);
+}
+
+void Oreginum::Vulkan::Shader::swap(Shader *other)
+{
+	std::swap(this->device, other->device);
+	std::swap(this->modules, other->modules);
+	std::swap(this->information, other->information);
+}
 
 vk::ShaderModule Oreginum::Vulkan::Shader::create_shader_module(const std::string& shader)
 {
@@ -37,7 +40,7 @@ vk::ShaderModule Oreginum::Vulkan::Shader::create_shader_module(const std::strin
 	shader_module_information.setPCode(reinterpret_cast<const uint32_t *>(data.data()));
 
 	vk::ShaderModule shader_module;
-	if(device.get().createShaderModule(&shader_module_information,
+	if(device->get().createShaderModule(&shader_module_information,
 		nullptr, &shader_module) != vk::Result::eSuccess)
 		Oreginum::Core::error("Could not create Vulkan shader module \""+shader+"\".");
 	return shader_module;

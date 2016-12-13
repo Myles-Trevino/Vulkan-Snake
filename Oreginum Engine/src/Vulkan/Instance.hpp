@@ -11,17 +11,19 @@ namespace Oreginum::Vulkan
 	{
 	public:
 		Instance(bool debug = false);
+		Instance *Instance::operator=(Instance other){ swap(&other); return this; }
 		~Instance();
 
-		const vk::Instance& get() const { return instance; }
+		const vk::Instance& get() const { return *instance; }
 
 	private:
 		std::vector<const char *> instance_extensions
 		{VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME};
 		std::vector<const char *> instance_layers{};
-		vk::Instance instance;
+		std::shared_ptr<vk::Instance> instance = std::make_shared<vk::Instance>();
 		vk::DebugReportCallbackEXT debug_callback;
 
+		void swap(Instance *other);
 		void create_debug_callback();
 	};
 }

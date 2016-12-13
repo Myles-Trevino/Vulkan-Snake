@@ -6,14 +6,18 @@ namespace Oreginum::Vulkan
 	class Surface
 	{
 	public:
+		Surface(){}
 		Surface(const Instance& instance);
+		Surface *Surface::operator=(Surface other)
+		{ swap(&other); return this; }
 		~Surface();
 
-		vk::SurfaceKHR get() const { return surface; }
+		vk::SurfaceKHR get() const { return *surface; }
 
 	private:
-		const Instance& instance;
+		const Instance *instance;
+		std::shared_ptr<vk::SurfaceKHR> surface = std::make_shared<vk::SurfaceKHR>();
 
-		vk::SurfaceKHR surface;
+		void swap(Surface *other);
 	};
 }

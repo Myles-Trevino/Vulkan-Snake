@@ -7,23 +7,27 @@
 #include "Shader.hpp"
 #include "Descriptor Set.hpp"
 #include "Render Pass.hpp"
+#include "Swapchain.hpp"
 
 namespace Oreginum::Vulkan
 {
 	class Pipeline
 	{
 	public:
-		Pipeline(const Device& device, const Shader& shader,
-			const Descriptor_Set& descriptor_set, const Render_Pass& render_pass);
+		Pipeline(){}
+		Pipeline(const Device& device, const Swapchain& swapchain, const Render_Pass& 
+			render_pass, const Shader& shader, size_t uniforms_size);
+		Pipeline *Pipeline::operator=(Pipeline other){ swap(&other); return this; };
 		~Pipeline();
 
-		const vk::Pipeline& get() const { return pipeline; }
+		const vk::Pipeline& get() const { return *pipeline; }
 		const vk::PipelineLayout& get_layout() const { return pipeline_layout; }
 
 	private:
-		const Device& device;
-
+		const Device *device;
 		vk::PipelineLayout pipeline_layout;
-		vk::Pipeline pipeline;
+		std::shared_ptr<vk::Pipeline> pipeline = std::make_shared<vk::Pipeline>();
+
+		void swap(Pipeline *other);
 	};
 }

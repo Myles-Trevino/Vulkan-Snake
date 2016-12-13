@@ -13,12 +13,14 @@ namespace Oreginum::Vulkan
 	class Device
 	{
 	public:
+		Device(){};
 		Device(const Instance& instance, const Surface& surface);
-		~Device(){ device.destroy(); }
+		Device *Device::operator=(Device other){ swap(&other); return this; }
+		~Device();
 
 		void update(){ get_gpu_swapchain_information(gpu); }
 
-		const vk::Device& get() const { return device; }
+		const vk::Device& get() const { return *device; }
 		const vk::PhysicalDevice& get_gpu() const { return gpu; }
 		const vk::SurfaceCapabilitiesKHR& get_surface_capabilities() const
 		{ return surface_capabilities; }
@@ -26,9 +28,8 @@ namespace Oreginum::Vulkan
 		const vk::Queue& get_graphics_queue() const { return graphics_queue; }
 
 	private:
-		const Instance& instance;
-		const Surface& surface;
-
+		const Instance *instance;
+		const Surface *surface;
 		std::array<const char *, 1> gpu_extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 		std::vector<vk::ExtensionProperties> supported_gpu_extensions;
 		uint32_t graphics_queue_family_index;
@@ -39,8 +40,9 @@ namespace Oreginum::Vulkan
 		std::vector<vk::SurfaceFormatKHR> surface_formats;
 		std::vector<vk::PresentModeKHR> swapchain_present_modes;
 		vk::PhysicalDevice gpu;
-		vk::Device device;
+		std::shared_ptr<vk::Device> device = std::make_shared<vk::Device>();
 
+		void swap(Device *other);
 		void get_gpu_swapchain_information(const vk::PhysicalDevice& gpu);
 		void get_gpu_information(const vk::PhysicalDevice& gpu);
 		void select_gpu();

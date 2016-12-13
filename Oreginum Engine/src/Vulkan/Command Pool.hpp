@@ -10,15 +10,18 @@ namespace Oreginum::Vulkan
 	class Command_Pool
 	{
 	public:
+		Command_Pool(){}
 		Command_Pool(const Device& device, uint32_t queue_family_index,
 			vk::CommandPoolCreateFlags flags = {});
+		Command_Pool *Command_Pool::operator=(Command_Pool other){ swap(&other); return this; }
 		~Command_Pool();
 
-		const vk::CommandPool& get() const { return command_pool; }
+		const vk::CommandPool& get() const { return *command_pool; }
 
 	private:
-		const Device& device;
+		const Device *device;
+		std::shared_ptr<vk::CommandPool> command_pool = std::make_shared<vk::CommandPool>();
 
-		vk::CommandPool command_pool;
+		void swap(Command_Pool *other);
 	};
 }

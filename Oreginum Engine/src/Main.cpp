@@ -3,7 +3,11 @@
 #define GLM_FORECE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_RADIANS
 #include <GLM/gtc/matrix_transform.hpp>
+#include <GLM/gtx/transform.hpp>
 #include "Oreginum/Core.hpp"
+#include "Oreginum/Window.hpp"
+#include "Oreginum/Keyboard.hpp"
+#include "Oreginum/Rectangle.hpp"
 #include "Vulkan/Instance.hpp"
 #include "Vulkan/Device.hpp"
 #include "Vulkan/Command Buffer.hpp"
@@ -16,9 +20,11 @@
 #include "Vulkan/Framebuffer.hpp"
 #include "Vulkan/Pipeline.hpp"
 #include "Vulkan/Semaphore.hpp"
+#include "Vulkan/Fence.hpp"
 
 /*
-	Reduce the number of device passes
+	Use uint32_t vertices.
+	Reduce the number of device passes.
 	See about consolidating command pool and command buffer classes.
 	Rename Command Pool to Command Buffer Pool.
 	See about removing single time command pool.
@@ -26,105 +32,221 @@
 	See about allocating image and buffer memory in larger chunks.
 	Revise image layouts.
 	Look into using multiple queues.
-	Look into multithreding command buffer creation.
+	Look into multithreading command buffer creation.
 	Use push constants for uniforms.
 	Optimize image creation.
 */
 
+namespace
+{
+	Oreginum::Vulkan::Instance instance;
+	Oreginum::Vulkan::Surface surface;
+	Oreginum::Vulkan::Device device;
+	Oreginum::Vulkan::Swapchain swapchain;
+	Oreginum::Vulkan::Render_Pass render_pass;
+	Oreginum::Vulkan::Shader shader;
+	Oreginum::Vulkan::Pipeline pipeline;
+	std::vector<Oreginum::Vulkan::Framebuffer> framebuffers;
+	Oreginum::Vulkan::Command_Pool command_pool, temporary_command_pool;
+	std::vector<Oreginum::Vulkan::Command_Buffer> command_buffers;
+	Oreginum::Vulkan::Semaphore image_available, render_finished;
+
+	Oreginum::Rectangle fruit;
+	std::vector<Oreginum::Rectangle> snake;
+	glm::fvec3 background_color{.1f, .1f, .1f},
+		fruit_color{1.f, .1f, .3f}, snake_color{.3f, 1.f, .5f};
+	enum class Direction{UP, DOWN, LEFT, RIGHT} direction, previous_direction;
+	constexpr int board_size{465}, tile_size{15}, tiles{board_size/tile_size};
+	float snake_timer, move_time;
+}
+
+void initialize_vulkan_static()
+{
+	instance = {};
+	surface = {instance};
+	device = {instance, surface};
+	swapchain = {instance, surface, &device};
+	temporary_command_pool = {device, device.get_graphics_queue_family_index(), 
+		vk::CommandPoolCreateFlagBits::eTransient};
+	command_pool = {device, device.get_graphics_queue_family_index()};
+	image_available = {device};
+	render_finished = {device};
+}
+
+void initialize_vulkan_volatile()
+{
+	device.get().waitIdle();
+	render_pass = {device};
+
+	shader = {device, {{"Snake Vertex", vk::ShaderStageFlagBits::eVertex},
+	{"Snake Fragment", vk::ShaderStageFlagBits::eFragment}}};
+	pipeline = {device, swapchain, render_pass, shader,
+		Oreginum::Rectangle::get_uniforms_size()};
+
+	framebuffers.clear();
+	for(const auto& i : swapchain.get_images())
+		framebuffers.push_back({device, swapchain, render_pass, i});
+
+	command_buffers.clear();
+	for(int i{}; i < framebuffers.size(); ++i)
+	{
+		command_buffers.push_back({device, command_pool});
+
+		vk::CommandBufferBeginInfo command_buffer_begin_information;
+		command_buffer_begin_information.setFlags(
+			vk::CommandBufferUsageFlagBits::eSimultaneousUse);
+		command_buffers.back().get().begin(command_buffer_begin_information);
+
+		std::array<vk::ClearValue, 1> clear_values{std::array<float, 4>{
+			background_color.r, background_color.g, background_color.b, 1}};
+		vk::RenderPassBeginInfo render_pass_begin_information;
+		render_pass_begin_information.setRenderPass(render_pass.get());
+		render_pass_begin_information.setFramebuffer(framebuffers[i].get());
+		render_pass_begin_information.setRenderArea(vk::Rect2D{{0, 0}, swapchain.get_extent()});
+		render_pass_begin_information.setClearValueCount(
+			static_cast<uint32_t>(clear_values.size()));
+		render_pass_begin_information.setPClearValues(clear_values.data());
+
+		command_buffers.back().get().beginRenderPass(
+			render_pass_begin_information, vk::SubpassContents::eInline);
+		command_buffers.back().get().bindPipeline(
+			vk::PipelineBindPoint::eGraphics, pipeline.get());
+
+		fruit.draw(pipeline, command_buffers.back());
+		for(Oreginum::Rectangle& s : snake)
+			s.draw(pipeline, command_buffers.back());
+
+		command_buffers.back().get().endRenderPass();
+
+		if(command_buffers.back().get().end() != vk::Result::eSuccess)
+			Oreginum::Core::error("Could not record a Vulkan command buffer.");
+	}
+}
+
+void reinitialize_swapchain()
+{
+	swapchain.reinitialize(&device);
+	initialize_vulkan_volatile();
+}
+
+void set_fruit(){ fruit.set_translation({rand()%tiles*tile_size, rand()%tiles*tile_size}); }
+
+void set()
+{
+	snake.clear();
+	snake.push_back({device, temporary_command_pool, {tile_size,
+		tile_size}, glm::ivec2{tiles/2*tile_size}, snake_color});
+	set_fruit();
+	initialize_vulkan_volatile();
+
+	direction = Direction::RIGHT;
+	previous_direction = direction;
+	snake_timer = 0;
+	move_time = .1f;
+}
+
 int WinMain(HINSTANCE current_instance, HINSTANCE previous_instance, LPSTR arguments, int show)
 {
-	//Core
-	Oreginum::Core::initialize("Oreginum Engine Vulkan Test", {900, 900}, true);
-
-	//Vulkan
-	Oreginum::Model model{"Resources/Models/Suzanne/Suzanne.dae"};
-
-	struct Uniforms{ glm::fmat4 model, view, projection; glm::fvec3 camera_position; } uniforms;
-
-	Oreginum::Vulkan::Instance instance{true};
-	Oreginum::Vulkan::Surface surface{instance};
-	Oreginum::Vulkan::Device device{instance, surface};
-
-	Oreginum::Vulkan::Command_Pool command_pool{device,
-		device.get_graphics_queue_family_index()};
-	Oreginum::Vulkan::Command_Buffer command_buffer{device, command_pool};
-
-	Oreginum::Vulkan::Swapchain swapchain{instance, surface, &device, command_buffer};
-
-	Oreginum::Vulkan::Image depth_buffer{device, command_buffer, swapchain.get_extent(), 
-		Oreginum::Vulkan::Core::DEPTH_FORMAT, vk::ImageAspectFlagBits::eDepth,
-		vk::ImageUsageFlagBits::eDepthStencilAttachment};
-
-	Oreginum::Vulkan::Buffer uniform_buffer{device, command_pool,
-		vk::BufferUsageFlagBits::eUniformBuffer, &uniforms, sizeof(uniforms)};
-
-	Oreginum::Vulkan::Descriptor_Pool descriptor_pool{device,
-		{{vk::DescriptorType::eUniformBuffer, 1}}};
-	Oreginum::Vulkan::Descriptor_Set descriptor_set{device, descriptor_pool,
-		vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex};
-
-	Oreginum::Vulkan::Render_Pass render_pass{device};
-
-	Oreginum::Vulkan::Shader shader{device,
-		{{"Basic Vertex", vk::ShaderStageFlagBits::eVertex},
-		{"Basic Fragment", vk::ShaderStageFlagBits::eFragment}}};
-
-	std::vector<Oreginum::Vulkan::Framebuffer> framebuffers;
-	for(const auto& i : swapchain.get_images()) framebuffers.push_back(
-		{device, render_pass, i, depth_buffer, swapchain.get_extent()});
-
-	Oreginum::Vulkan::Buffer vertex_buffer{device, command_pool,
-		vk::BufferUsageFlagBits::eVertexBuffer, &model.get_vertices(),
-		sizeof(model.get_vertices()[0])*model.get_vertices().size()};
-
-	Oreginum::Vulkan::Buffer index_buffer{device, command_pool,
-		vk::BufferUsageFlagBits::eIndexBuffer, &model.get_indices(),
-		sizeof(model.get_indices()[0])*model.get_indices().size()};
-
-	Oreginum::Vulkan::Pipeline pipeline{device, shader, descriptor_set, render_pass};
-
-	Oreginum::Vulkan::Semaphore image_acquired{device};
+	Oreginum::Core::initialize("Oreginum Engine Vulkan Test", glm::ivec2{board_size});
+	initialize_vulkan_static();
+	fruit = Oreginum::Rectangle{device, temporary_command_pool,
+		{tile_size, tile_size}, {}, fruit_color};
+	set();
 
 	//Program
 	while(Oreginum::Core::update())
 	{
-		//Get image index
-		uint32_t image_index;
-		vk::Result result{device.get().acquireNextImageKHR(swapchain.get(),
-			UINT64_MAX, image_acquired.get(), VK_NULL_HANDLE, &image_index)};
+		//Controls
+		if(Oreginum::Keyboard::was_pressed(Oreginum::Key::W)
+			&& previous_direction != Direction::DOWN) direction = Direction::UP;
+		else if(Oreginum::Keyboard::was_pressed(Oreginum::Key::S)
+			&& previous_direction != Direction::UP) direction = Direction::DOWN;
+		else if(Oreginum::Keyboard::was_pressed(Oreginum::Key::A)
+			&& previous_direction != Direction::RIGHT) direction = Direction::LEFT;
+		else if(Oreginum::Keyboard::was_pressed(Oreginum::Key::D)
+			&& previous_direction != Direction::LEFT) direction = Direction::RIGHT;
+
+		//Move snake
+		if(snake_timer < move_time) snake_timer += Oreginum::Core::get_delta();
+		else
+		{
+			//Eat fruit
+			if(snake.back().get_translation() == fruit.get_translation())
+			{
+				move_time /= 1.01f;
+				snake.push_back({device, temporary_command_pool, {tile_size,
+					tile_size}, snake.back().get_translation(), snake_color});
+				set_fruit();
+			}
+
+			//Move
+			for(int i{}; i < snake.size()-1; ++i)
+				snake[i].set_translation(snake[i+1].get_translation());
+
+			if(direction == Direction::UP) snake.back().translate({0, -tile_size});
+			else if(direction == Direction::DOWN) snake.back().translate({0, tile_size});
+			else if(direction == Direction::LEFT) snake.back().translate({-tile_size, 0});
+			else if(direction == Direction::RIGHT) snake.back().translate({tile_size, 0});
+
+			initialize_vulkan_volatile();
+			previous_direction = direction;
+			snake_timer = 0;
+		}
+
+		//Game over
+		glm::fvec2 head{snake.back().get_translation()};
+		if(head.x < 0 || head.x >= board_size || head.y < 0 || head.y >= board_size) set();
+		for(int i{}; i < snake.size()-1; ++i) if(head == snake[i].get_translation()) set();
 
 		//Render
-		std::array<vk::ClearValue, 2> clear_values;
-		clear_values[0].setColor(std::array<int, 4>{1, 0, 0, 1});
-		clear_values[1].setDepthStencil({1, 0});
+		if(Oreginum::Window::was_resized()) reinitialize_swapchain();
 
-		vk::RenderPassBeginInfo render_pass_information{render_pass.get(),
-			framebuffers[image_index].get(), {{0, 0, swapchain.get_extent()}},
-			static_cast<uint32_t>(clear_values.size()), clear_values.data()};
+		uint32_t image_index;
+		vk::Result result{device.get().acquireNextImageKHR(swapchain.get(),
+			std::numeric_limits<uint64_t>::max(), image_available.get(),
+			VK_NULL_HANDLE, &image_index)};
+		if(result == vk::Result::eSuboptimalKHR || result == vk::Result::eErrorOutOfDateKHR) 
+			reinitialize_swapchain(); else if(result != vk::Result::eSuccess)
+			Oreginum::Core::error("Could not aquire a Vulkan swapchain image.");
 
-		command_buffer.get().beginRenderPass(render_pass_information,
-			vk::SubpassContents::eInline);
+		std::array<vk::Semaphore, 1> submit_wait_semaphores{image_available.get()};
+		std::array<vk::PipelineStageFlags, 1> wait_stages
+		{vk::PipelineStageFlagBits::eColorAttachmentOutput};
+		std::array<vk::CommandBuffer, 1> submit_command_buffers
+		{command_buffers[image_index].get()};
+		std::array<vk::Semaphore, 1> submit_signal_semaphores{render_finished.get()};
+		vk::SubmitInfo submit_information;
+		submit_information.setWaitSemaphoreCount(
+			static_cast<uint32_t>(submit_wait_semaphores.size()));
+		submit_information.setPWaitSemaphores(submit_wait_semaphores.data());
+		submit_information.setPWaitDstStageMask(wait_stages.data());
+		submit_information.setCommandBufferCount(
+			static_cast<uint32_t>(submit_command_buffers.size()));
+		submit_information.setPCommandBuffers(submit_command_buffers.data());
+		submit_information.setSignalSemaphoreCount(
+			static_cast<uint32_t>(submit_signal_semaphores.size()));
+		submit_information.setPSignalSemaphores(submit_signal_semaphores.data());
 
-		command_buffer.get().bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
+		if(device.get_graphics_queue().submit(submit_information, VK_NULL_HANDLE) !=
+			vk::Result::eSuccess) Oreginum::Core::error("Could not submit Vulkan"
+				"render command buffer.");
 
-		command_buffer.get().bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-			pipeline.get_layout(), 0, descriptor_set.get(), {});
+		std::array<vk::Semaphore, 1> present_wait_semaphores{render_finished.get()};
+		std::array<vk::SwapchainKHR, 1> swapchains{swapchain.get()};
+		vk::PresentInfoKHR present_information;
+		present_information.setWaitSemaphoreCount(
+			static_cast<uint32_t>(present_wait_semaphores.size()));
+		present_information.setPWaitSemaphores(present_wait_semaphores.data());
+		present_information.setSwapchainCount(static_cast<uint32_t>(swapchains.size()));
+		present_information.setPSwapchains(swapchains.data());
+		present_information.setPImageIndices(&image_index);
+		present_information.setPResults(nullptr);
 
-		command_buffer.get().bindVertexBuffers(0, vertex_buffer.get(), {});
-
-		vk::Viewport viewport{0, 0, swapchain.get_extent().width,
-			swapchain.get_extent().height, 0, 1};
-		command_buffer.get().setViewport(0, viewport);
-
-		vk::Rect2D scissor{{0, 0}, swapchain.get_extent()};
-		command_buffer.get().setScissor(0, scissor);
-
-		command_buffer.get().bindIndexBuffer(index_buffer.get(), 0, vk::IndexType::eUint16);
-
-		command_buffer.get().drawIndexed(
-			static_cast<uint32_t>(model.get_indices().size()), 1, 0, 0, 0);
-
-		command_buffer.get().endRenderPass();
-		command_buffer.get().end();
+		result = device.get_graphics_queue().presentKHR(present_information);
+		if(result == vk::Result::eSuboptimalKHR || result == vk::Result::eErrorOutOfDateKHR) 
+			reinitialize_swapchain(); else if(result != vk::Result::eSuccess)
+			Oreginum::Core::error("Could not submit Vulkan presentation queue.");
 	}
+
+	device.get().waitIdle();
 }

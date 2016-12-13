@@ -1,12 +1,18 @@
 #include "../Oreginum/Core.hpp"
 #include "Semaphore.hpp"
 
-Oreginum::Vulkan::Semaphore::Semaphore(const Device& device) : device(device)
+Oreginum::Vulkan::Semaphore::Semaphore(const Device& device) : device(&device)
 {
 	vk::SemaphoreCreateInfo semaphore_information;
-
-	if(device.get().createSemaphore(&semaphore_information, nullptr, &semaphore) != 
+	if(device.get().createSemaphore(&semaphore_information, nullptr, semaphore.get()) != 
 		vk::Result::eSuccess) Oreginum::Core::error("Could not create a Vulkan semaphore.");
 }
 
-Oreginum::Vulkan::Semaphore::~Semaphore(){ device.get().destroySemaphore(semaphore); }
+Oreginum::Vulkan::Semaphore::~Semaphore()
+{ if(semaphore.unique() && *semaphore) device->get().destroySemaphore(*semaphore); }
+
+void Oreginum::Vulkan::Semaphore::swap(Semaphore *other)
+{
+	std::swap(this->device, other->device);
+	std::swap(this->semaphore, other->semaphore);
+}
