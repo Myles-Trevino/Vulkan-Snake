@@ -9,8 +9,8 @@ namespace Oreginum
 {
 	namespace Core
 	{
-		void initialize(const std::string& title,
-			const glm::ivec2& resolution, bool debug = false);
+		void initialize(const std::string& title, const glm::ivec2& resolution,
+			bool vsync = true, bool terminal = false, bool debug = false);
 		void destroy();
 
 		void error(const std::string& error);

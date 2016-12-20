@@ -6,9 +6,9 @@
 #include "Buffer.hpp"
 
 Oreginum::Vulkan::Buffer::Buffer(const Device& device,
-	const Command_Pool& temporary_command_pool, vk::BufferUsageFlags usage,
-	size_t size, const void *data) : device(&device),
-	temporary_command_pool(&temporary_command_pool), size(size)
+	const Command_Buffer& temporary_command_buffer, vk::BufferUsageFlags usage,
+	size_t size, const void *data) : device(std::make_shared<const Device>(device)),
+	temporary_command_buffer(&temporary_command_buffer), size(size)
 {
 	create_buffer(&stage, &stage_memory, size, vk::BufferUsageFlagBits::eTransferSrc,
 		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -29,7 +29,7 @@ Oreginum::Vulkan::Buffer::~Buffer()
 void Oreginum::Vulkan::Buffer::swap(Buffer *other)
 {
 	std::swap(this->device, other->device);
-	std::swap(this->temporary_command_pool, other->temporary_command_pool);
+	std::swap(this->temporary_command_buffer, other->temporary_command_buffer);
 	std::swap(this->size, other->size);
 	std::swap(this->buffer, other->buffer);
 	std::swap(this->buffer_memory, other->buffer_memory);
@@ -50,8 +50,7 @@ void Oreginum::Vulkan::Buffer::create_buffer(vk::Buffer *buffer, vk::DeviceMemor
 	(device->get().getBufferMemoryRequirements(*buffer));
 	vk::MemoryAllocateInfo memory_information{memory_requirements.size,
 		find_memory(*device, memory_requirements.memoryTypeBits, memory_property_flags)};
-	if(device->get().allocateMemory(&memory_information,
-		nullptr, memory) != vk::Result::eSuccess)
+	if(device->get().allocateMemory(&memory_information, nullptr, memory) != vk::Result::eSuccess)
 		Oreginum::Core::error("Could not allocate memory for a Vulkan buffer.");
 
 	//Bind buffer memory
@@ -69,20 +68,19 @@ uint32_t Oreginum::Vulkan::Buffer::find_memory(const Device& device,
 	Oreginum::Core::error("Could not find suitable Vulkan memory.");
 }
 
-void Oreginum::Vulkan::Buffer::write(const void *data, size_t size)
+void Oreginum::Vulkan::Buffer::write(const void *data, size_t size, size_t offset)
 {
 	//Copy data to stage buffer
 	this->size = size;
-	auto result{device->get().mapMemory(stage_memory, 0, size)};
+	auto result{device->get().mapMemory(stage_memory, offset, size)};
 	if(result.result != vk::Result::eSuccess)
 		Oreginum::Core::error("Could not map Vulkan staging buffer memory.");
-	memcpy(result.value, data, size);
+	std::memcpy(result.value, data, size);
 	device->get().unmapMemory(stage_memory);
 
 	//Copy data from stage buffer to device buffer
-	vk::CommandBuffer temporary_command_buffer
-	{Command_Buffer::begin_single_time_commands(*device, *temporary_command_pool)};
-	temporary_command_buffer.copyBuffer(stage, *buffer, {{0, 0, size}});
-	Command_Buffer::end_single_time_commands(*device,
-		*temporary_command_pool, temporary_command_buffer);
+	temporary_command_buffer->begin(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+	temporary_command_buffer->get().copyBuffer(stage, *buffer, {{offset, offset, size}});
+	temporary_command_buffer->end();
+	temporary_command_buffer->submit();
 }

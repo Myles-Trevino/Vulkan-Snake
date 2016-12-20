@@ -5,7 +5,8 @@
 #include "Swapchain.hpp"
 
 Oreginum::Vulkan::Device::Device(const Instance& instance, const Surface& surface)
-	: instance(&instance), surface(&surface){ select_gpu(), create_device(); }
+	: instance(std::make_shared<const Instance>(instance)), surface(&surface)
+{ select_gpu(), create_device(); }
 
 Oreginum::Vulkan::Device::~Device(){ if(device.unique() && *device) device->destroy(); }
 

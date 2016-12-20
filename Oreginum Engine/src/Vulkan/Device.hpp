@@ -24,11 +24,12 @@ namespace Oreginum::Vulkan
 		const vk::PhysicalDevice& get_gpu() const { return gpu; }
 		const vk::SurfaceCapabilitiesKHR& get_surface_capabilities() const
 		{ return surface_capabilities; }
+		const vk::PhysicalDeviceProperties& get_properties() const { return gpu_properties; }
 		uint32_t get_graphics_queue_family_index() const { return graphics_queue_family_index; }
 		const vk::Queue& get_graphics_queue() const { return graphics_queue; }
 
 	private:
-		const Instance *instance;
+		std::shared_ptr<const Instance> instance;
 		const Surface *surface;
 		std::array<const char *, 1> gpu_extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 		std::vector<vk::ExtensionProperties> supported_gpu_extensions;

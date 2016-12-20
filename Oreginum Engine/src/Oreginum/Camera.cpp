@@ -29,13 +29,15 @@ namespace
 	constexpr float FAR_CLIP{100};
 	constexpr float WALK_SPEED{1.0f};
 	constexpr float RUN_SPEED{3.0f};
+
+	bool freeze;
 }
 
 void Oreginum::Camera::update()
 {
 	if(!Window::is_visible()) return;
 
-	if(Mouse::is_locked())
+	if(Mouse::is_locked() && !::freeze)
 	{
 		glm::fvec2 cursor_delta{-glm::fvec2{Mouse::get_delta()}*SENSITIVITY};
 		if(glm::length(cursor_delta))
@@ -61,7 +63,12 @@ void Oreginum::Camera::update()
 	view = glm::lookAt(position, position+direction, world_up);
 	projection = glm::perspective(FOV, Window::get_resolution().x/
 		static_cast<float>(Window::get_resolution().y), NEAR_CLIP, FAR_CLIP);
+	projection[1][1] *= -1;
 }
+
+void Oreginum::Camera::freeze(bool freeze){ ::freeze = freeze; }
+
+void Oreginum::Camera::set_position(const glm::fvec3& position){ ::position = position; }
 
 const glm::fvec3& Oreginum::Camera::get_position(){ return position; }
 

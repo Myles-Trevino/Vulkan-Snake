@@ -57,21 +57,18 @@ void Oreginum::Vulkan::Image::create_image_view(vk::Format format, vk::ImageAspe
 		vk::Result::eSuccess) Oreginum::Core::error("Could not create a Vulkan image view.");
 }
 
-void Oreginum::Vulkan::Image::transition(const Command_Pool& temporary_command_pool,
+void Oreginum::Vulkan::Image::transition(const Command_Buffer& temporary_command_buffer,
 	vk::ImageLayout old_layout, vk::ImageLayout new_layout, vk::AccessFlags source_access_flags,
 	vk::AccessFlags destination_access_flags, uint32_t source_queue_family_index,
 	uint32_t destination_family_queue_index)
 {
+	temporary_command_buffer.begin(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 	vk::ImageMemoryBarrier image_memory_barrier{source_access_flags, destination_access_flags,
 		old_layout, new_layout, source_queue_family_index, destination_family_queue_index,
 		image, {aspect, 0, 1, 0, 1}};
-
-	vk::CommandBuffer temporary_command_buffer
-	{Command_Buffer::begin_single_time_commands(*device, temporary_command_pool)};
-	temporary_command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
+	temporary_command_buffer.get().pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
 		vk::PipelineStageFlagBits::eTopOfPipe, vk::DependencyFlagBits{}, 0,
 		nullptr, 0, nullptr, 1, &image_memory_barrier);
-
-	Command_Buffer::end_single_time_commands(*device,
-		temporary_command_pool, temporary_command_buffer);
+	temporary_command_buffer.end();
+	temporary_command_buffer.submit();
 }

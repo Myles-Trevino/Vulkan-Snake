@@ -23,7 +23,9 @@ VKAPI_ATTR void VKAPI_CALL vkDestroyDebugReportCallbackEXT(VkInstance instance,
 VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback_function(VkDebugReportFlagsEXT flags,
 	VkDebugReportObjectTypeEXT type, uint64_t object, size_t location,
 	int32_t code, const char *layer_prefix, const char *message, void *user_data)
-{ std::cout<<layer_prefix<<": "<<message<<'\n'; return false; }
+{
+	std::cout<<layer_prefix<<": "<<message<<'\n'; return false;
+}
 
 Oreginum::Vulkan::Instance::Instance(bool debug)
 {

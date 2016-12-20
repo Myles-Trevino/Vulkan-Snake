@@ -9,6 +9,9 @@ namespace Oreginum
 	{
 		void update();
 
+		void freeze(bool freeze);
+		void set_position(const glm::fvec3& position);
+
 		const glm::fvec3& get_position();
 		const glm::fmat4& get_view();
 		const glm::fmat4& get_projection();

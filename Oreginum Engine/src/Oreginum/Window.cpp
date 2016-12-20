@@ -2,6 +2,7 @@
 #include "Window.hpp"
 #include "Mouse.hpp"
 #include "Keyboard.hpp"
+#include <iostream>
 
 namespace
 {
@@ -14,6 +15,7 @@ namespace
 	bool resized;
 	bool closed;
 	bool focused;
+	glm::ivec2 resolution, old_resolution, position;
 
 	LRESULT CALLBACK window_callback(HWND window, UINT message,
 		WPARAM message_information, LPARAM message_informaton_long)
@@ -69,10 +71,12 @@ void Oreginum::Window::initialize(const std::string& title, const glm::ivec2& re
 	window_information.hIconSm = LoadIcon(window_information.hInstance, IDI_APPLICATION);
 	RegisterClassEx(&window_information);
 
+	old_resolution = ::resolution = resolution;
+	position = Core::get_screen_resolution()/2-resolution/2;
 	window = CreateWindow(title.c_str(), title.c_str(), WS_POPUP | WS_VISIBLE,
-		Core::get_screen_resolution().x/2-resolution.x/2, Core::get_screen_resolution().y/2-
-		resolution.y/2, resolution.x, resolution.y, NULL, NULL, instance, NULL);
+		position.x, position.y, resolution.x, resolution.y, NULL, NULL, instance, NULL);
 	if(!window) Core::error("Could not create window.");
+	
 }
 
 void Oreginum::Window::destroy()
@@ -87,29 +91,29 @@ void Oreginum::Window::update()
 	static MSG message;
 	while(PeekMessage(&message, NULL, NULL, NULL, PM_REMOVE)) DispatchMessage(&message);
 
-	//Update resized status
-	static glm::ivec2 old_resolution{get_resolution()};
-	resized = (old_resolution != get_resolution());
-	old_resolution = get_resolution();
 
 	if(Keyboard::is_held(Key::CTRL) && Keyboard::was_pressed(Key::Q)) closed = true;
-	
+	resized = false;
+
 	if(!Mouse::is_locked())
 		//Move
-		if(Mouse::is_held(Button::LEFT_MOUSE))
-			MoveWindow(window, get_position().x+Mouse::get_delta().x, get_position().y+
-				Mouse::get_delta().y, get_resolution().x, get_resolution().y, false);
-
-		//Resize
-		/*
-		else if(Mouse::is_held(Button::RIGHT_MOUSE))
+		if(Mouse::is_held(Button::LEFT_MOUSE) && Keyboard::is_held(CTRL))
 		{
-			glm::ivec2 resolution{glm::clamp(get_resolution()+Mouse::get_delta(),
-				MINIMUM_RESOLUTION, glm::ivec2{INT32_MAX})};
-			MoveWindow(window, get_position().x, get_position().y,
-				resolution.x, resolution.y, false);
+			position += Mouse::get_delta();
+			MoveWindow(window, position.x, position.y, resolution.x, resolution.y, false);
 		}
-		*/
+			
+		//Resize
+		else if(Mouse::is_held(Button::RIGHT_MOUSE) && Keyboard::is_held(CTRL))
+		{
+			resolution = {glm::clamp(resolution+Mouse::get_delta(),
+				MINIMUM_RESOLUTION, glm::ivec2{INT32_MAX})};
+			MoveWindow(window, position.x, position.y, resolution.x, resolution.y, false);
+
+			//Update resized status
+			resized = (old_resolution != resolution);
+			old_resolution = resolution;
+		}
 }
 
 HINSTANCE Oreginum::Window::get_instance(){ return instance; }
@@ -118,19 +122,9 @@ HWND Oreginum::Window::get(){ return window; }
 
 const std::string& Oreginum::Window::get_title(){ return title; }
 
-glm::ivec2 Oreginum::Window::get_resolution()
-{
-	RECT rectangle;
-	GetClientRect(window, &rectangle);
-	return {rectangle.right, rectangle.bottom};
-}
+glm::ivec2 Oreginum::Window::get_resolution(){ return resolution; }
 
-glm::ivec2 Oreginum::Window::get_position()
-{
-	RECT rectangle;
-	GetWindowRect(window, &rectangle);
-	return {rectangle.left, rectangle.top};
-}
+glm::ivec2 Oreginum::Window::get_position(){ return position; }
 
 bool Oreginum::Window::was_closed(){ return closed; }
 

@@ -50,6 +50,13 @@ void Oreginum::Mouse::update()
 
 void Oreginum::Mouse::set_pressed(Button button, bool pressed){ ::pressed[button] = pressed; }
 
+glm::ivec2 Oreginum::Mouse::get_position()
+{
+	POINT position{};
+	GetCursorPos(&position);
+	return glm::ivec2{position.x, position.y}-Window::get_position();
+}
+
 const glm::ivec2& Oreginum::Mouse::get_delta(){ return delta; }
 
 bool Oreginum::Mouse::is_locked(){ return locked; }

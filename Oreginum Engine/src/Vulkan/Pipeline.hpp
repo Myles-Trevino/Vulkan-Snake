@@ -15,8 +15,9 @@ namespace Oreginum::Vulkan
 	{
 	public:
 		Pipeline(){}
-		Pipeline(const Device& device, const Swapchain& swapchain, const Render_Pass& 
-			render_pass, const Shader& shader, size_t uniforms_size);
+		Pipeline(const Device& device, const Swapchain& swapchain,
+			const Render_Pass& render_pass, const Shader& shader,
+			const Vulkan::Descriptor_Set& descriptor_set);
 		Pipeline *Pipeline::operator=(Pipeline other){ swap(&other); return this; };
 		~Pipeline();
 

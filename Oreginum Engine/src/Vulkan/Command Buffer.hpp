@@ -16,19 +16,20 @@ namespace Oreginum::Vulkan
 			vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary);
 		Command_Buffer *Command_Buffer::operator=(Command_Buffer other)
 		{ swap(&other); return this; }
+		~Command_Buffer();
 
-		static vk::CommandBuffer begin_single_time_commands(const Device& device,
-			const Command_Pool& temporary_command_pool);
-		static void end_single_time_commands(const Device& device,
-			const Command_Pool& temporary_command_pool,
-			const vk::CommandBuffer& temporary_command_buffer);
+		void begin(vk::CommandBufferUsageFlagBits flags =
+			vk::CommandBufferUsageFlagBits::eSimultaneousUse) const;
+		void end() const;
+		void submit() const;
 
-		const vk::CommandBuffer& get() const { return command_buffer; }
+		const vk::CommandBuffer& get() const { return *command_buffer; }
 
 	private:
 		const Device *device;
 		const Command_Pool *command_pool;
-		vk::CommandBuffer command_buffer;
+		std::shared_ptr<vk::CommandBuffer> command_buffer =
+			std::make_shared<vk::CommandBuffer>();
 
 		void swap(Command_Buffer *other);
 	};

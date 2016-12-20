@@ -21,9 +21,9 @@ namespace Oreginum::Vulkan
 		Image *Image::operator=(Image other){ swap(&other); return this; }
 		~Image();
 
-		void transition(const Command_Pool& temporary_command_pool, vk::ImageLayout old_layout,
-			vk::ImageLayout new_layout, vk::AccessFlags source_access_flags,
-			vk::AccessFlags destination_access_flags,
+		void transition(const Command_Buffer& temporary_command_buffer,
+			vk::ImageLayout old_layout, vk::ImageLayout new_layout,
+			vk::AccessFlags source_access_flags, vk::AccessFlags destination_access_flags,
 			uint32_t source_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
 			uint32_t destination_family_queue_index = VK_QUEUE_FAMILY_IGNORED);
 

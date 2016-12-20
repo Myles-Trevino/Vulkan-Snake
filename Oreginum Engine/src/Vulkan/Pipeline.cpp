@@ -3,19 +3,20 @@
 #include "Pipeline.hpp"
 
 Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swapchain,
-	const Render_Pass& render_pass, const Shader& shader, size_t uniforms_size)
-	: device(&device)
+	const Render_Pass& render_pass, const Shader& shader,
+	const Vulkan::Descriptor_Set& descriptor_set) : device(&device)
 {
 	//Vertex input
 	std::array<vk::VertexInputBindingDescription, 1> binding_descriptions;
 	binding_descriptions[0].setBinding(0);
-	binding_descriptions[0].setStride(sizeof(float)*2);
+	//binding_descriptions[0].setStride(sizeof(float)*2);
+	binding_descriptions[0].setStride(sizeof(float)*3);
 	binding_descriptions[0].setInputRate(vk::VertexInputRate::eVertex);
 
 	std::array<vk::VertexInputAttributeDescription, 1> attribute_descriptions;
 	attribute_descriptions[0].setBinding(0);
 	attribute_descriptions[0].setLocation(0);
-	attribute_descriptions[0].setFormat(vk::Format::eR32G32Sfloat);
+	attribute_descriptions[0].setFormat(vk::Format::eR32G32B32Sfloat);
 	attribute_descriptions[0].setOffset(0);
 
 	vk::PipelineVertexInputStateCreateInfo vertex_input_state_information;
@@ -55,7 +56,7 @@ Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swap
 	rasterization_state_information.setDepthClampEnable(VK_FALSE);
 	rasterization_state_information.setRasterizerDiscardEnable(VK_FALSE);
 	rasterization_state_information.setPolygonMode(vk::PolygonMode::eFill);
-	rasterization_state_information.setCullMode(vk::CullModeFlagBits::eBack);
+	rasterization_state_information.setCullMode(vk::CullModeFlagBits::eNone);
 	rasterization_state_information.setFrontFace(vk::FrontFace::eCounterClockwise);
 	rasterization_state_information.setDepthBiasEnable(VK_FALSE);
 	rasterization_state_information.setDepthBiasConstantFactor(0);
@@ -87,17 +88,13 @@ Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swap
 	color_blend_state_information.setBlendConstants({0, 0, 0, 0});
 
 	//Layout
-	vk::PushConstantRange push_constant_information;
-	push_constant_information.setStageFlags(vk::ShaderStageFlagBits::eVertex);
-	push_constant_information.setOffset(0);
-	push_constant_information.setSize(uniforms_size);
-
 	vk::PipelineLayoutCreateInfo layout_information;
-	layout_information.setSetLayoutCount(0);
-	layout_information.setPSetLayouts(nullptr);
-	layout_information.setPushConstantRangeCount(1);
-	layout_information.setPPushConstantRanges(&push_constant_information);
+	layout_information.setSetLayoutCount(1);
+	layout_information.setPSetLayouts(&descriptor_set.get_layout());
+	layout_information.setPushConstantRangeCount(0);
+	layout_information.setPPushConstantRanges(nullptr);
 
+	device.get().waitIdle();
 	if(device.get().createPipelineLayout(&layout_information,
 		nullptr, &pipeline_layout) != vk::Result::eSuccess)
 		Oreginum::Core::error("Could not create a Vulkan graphics pipeline layout.");
@@ -128,7 +125,9 @@ Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swap
 
 Oreginum::Vulkan::Pipeline::~Pipeline()
 {
-	if(!pipeline.unique()) return;
+	if(!pipeline.unique() || !device) return;
+	device->get().waitIdle();
+
 	if(*pipeline) device->get().destroyPipeline(*pipeline);
 	if(pipeline_layout) device->get().destroyPipelineLayout(pipeline_layout);
 }

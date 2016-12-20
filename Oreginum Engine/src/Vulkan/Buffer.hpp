@@ -4,7 +4,6 @@
 #define VULKAN_HPP_NO_EXCEPTIONS
 #include <Vulkan/vulkan.hpp>
 #include "Device.hpp"
-#include "Command Pool.hpp"
 #include "Command Buffer.hpp"
 
 namespace Oreginum::Vulkan
@@ -13,21 +12,21 @@ namespace Oreginum::Vulkan
 	{
 	public:
 		Buffer(){}
-		Buffer(const Device& device, const Command_Pool& temporary_command_pool,
+		Buffer(const Device& device, const Command_Buffer& temporary_command_buffer,
 			vk::BufferUsageFlags usage, size_t size, const void *data = nullptr);
 		Buffer *Buffer::operator=(Buffer other){ swap(&other); return this; }
 		~Buffer();
 
 		static uint32_t find_memory(const Device& device, uint32_t type,
 			vk::MemoryPropertyFlags properties);
-		void write(const void *data = nullptr, size_t size = 0);
+		void write(const void *data = nullptr, size_t size = 0, size_t offset = 0);
 
 		const vk::Buffer& get() const { return *buffer; }
 		size_t get_size() const { return size; }
 
 	private:
-		const Device *device;
-		const Command_Pool *temporary_command_pool;
+		std::shared_ptr<const Device> device;
+		const Command_Buffer *temporary_command_buffer;
 		size_t size;
 		std::shared_ptr<vk::Buffer> buffer = std::make_shared<vk::Buffer>();
 		vk::DeviceMemory buffer_memory;

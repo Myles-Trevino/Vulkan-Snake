@@ -6,6 +6,7 @@
 #include "Mouse.hpp"
 #include "Camera.hpp"
 #include "Core.hpp"
+#include "Renderer.hpp"
 
 namespace
 {
@@ -14,15 +15,17 @@ namespace
 	float previous_time, delta;
 	float minimum_delta;
 	static double initial_time;
+	bool vsync;
 
 	double time_since_epoch(){ return std::chrono::duration_cast<std::chrono::microseconds>
 		(std::chrono::high_resolution_clock::now().time_since_epoch()).count()/1000000.0; }
 };
 
 void Oreginum::Core::initialize(const std::string& title,
-	const glm::ivec2& resolution, bool debug)
+	const glm::ivec2& resolution, bool vsync, bool terminal, bool debug)
 {
-	srand(time(NULL));
+	::vsync = vsync;
+	srand(static_cast<unsigned>(time(NULL)));
 	screen_resolution = {GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
 	DEVMODE devmode;
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devmode);
@@ -30,14 +33,16 @@ void Oreginum::Core::initialize(const std::string& title,
 	minimum_delta = 1.f/get_refresh_rate();
 	initial_time = time_since_epoch();
 
-	Window::initialize(title, resolution, debug);
+	Window::initialize(title, resolution, terminal);
 	Mouse::initialize();
+	Renderer::initialize(debug);
 }
 
 void Oreginum::Core::destroy()
 {
 	Mouse::destroy();
 	Window::destroy();
+	Oreginum::Renderer::get_device().get().waitIdle();
 }
 
 void Oreginum::Core::error(const std::string& error)
@@ -49,16 +54,22 @@ void Oreginum::Core::error(const std::string& error)
 
 bool Oreginum::Core::update()
 {
-	timeBeginPeriod(1);
-	while((delta = get_time()-previous_time) < minimum_delta)
-		if(minimum_delta-delta < 0.003f) Sleep(0); else Sleep(1);
+	delta = get_time()-previous_time;
+	if(vsync)
+	{
+		timeBeginPeriod(1);
+		while((delta = get_time()-previous_time) < minimum_delta)
+			if(minimum_delta-delta < 0.003f) Sleep(0); else Sleep(1);
+		timeEndPeriod(1);
+	}
 	previous_time = get_time();
-	timeEndPeriod(1);
 
 	Mouse::update();
 	Keyboard::update();
 	Window::update();
 	Camera::update();
+	Renderer::render();
+
 	return !Window::was_closed();
 }
 
