@@ -15,10 +15,24 @@ Oreginum::Vulkan::Render_Pass::Render_Pass(const Device& device) : device(&devic
 	color_attachment_description.setInitialLayout(vk::ImageLayout::eUndefined);
 	color_attachment_description.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
 
+	vk::AttachmentDescription depth_attachment_description;
+	depth_attachment_description.setFormat(Image::DEPTH_FORMAT);
+	depth_attachment_description.setSamples(vk::SampleCountFlagBits::e1);
+	depth_attachment_description.setLoadOp(vk::AttachmentLoadOp::eClear);
+	depth_attachment_description.setStoreOp(vk::AttachmentStoreOp::eDontCare);
+	depth_attachment_description.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
+	depth_attachment_description.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare);
+	depth_attachment_description.setInitialLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	depth_attachment_description.setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
 	//Subpasses
 	vk::AttachmentReference color_attachment_reference;
 	color_attachment_reference.setAttachment(0);
 	color_attachment_reference.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+
+	vk::AttachmentReference depth_attachment_reference;
+	depth_attachment_reference.setAttachment(1);
+	depth_attachment_reference.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
 	vk::SubpassDescription subpass_description;
 	subpass_description.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics);
@@ -27,7 +41,7 @@ Oreginum::Vulkan::Render_Pass::Render_Pass(const Device& device) : device(&devic
 	subpass_description.setColorAttachmentCount(1);
 	subpass_description.setPColorAttachments(&color_attachment_reference);
 	subpass_description.setPResolveAttachments(nullptr);
-	subpass_description.setPDepthStencilAttachment(nullptr);
+	subpass_description.setPDepthStencilAttachment(&depth_attachment_reference);
 	subpass_description.setPreserveAttachmentCount(0);
 	subpass_description.setPPreserveAttachments(nullptr);
 
@@ -42,7 +56,8 @@ Oreginum::Vulkan::Render_Pass::Render_Pass(const Device& device) : device(&devic
 		vk::AccessFlagBits::eColorAttachmentWrite);
 
 	//Render pass
-	std::array<vk::AttachmentDescription, 1> attachments{color_attachment_description};
+	std::array<vk::AttachmentDescription, 2> attachments
+	{color_attachment_description, depth_attachment_description};
 	std::array<vk::SubpassDescription, 1> subpasses{subpass_description};
 	std::array<vk::SubpassDependency, 1> dependencies{dependency};
 	vk::RenderPassCreateInfo render_pass_information;

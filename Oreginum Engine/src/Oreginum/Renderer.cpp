@@ -18,6 +18,7 @@ namespace
 	Oreginum::Vulkan::Buffer uniform_buffer;
 	Oreginum::Vulkan::Pipeline pipeline;
 	std::vector<Oreginum::Vulkan::Framebuffer> framebuffers;
+	Oreginum::Vulkan::Image depth_image;
 	Oreginum::Vulkan::Command_Pool command_pool, temporary_command_pool;
 	std::vector<Oreginum::Vulkan::Command_Buffer> command_buffers;
 	Oreginum::Vulkan::Command_Buffer temporary_command_buffer;
@@ -43,6 +44,12 @@ void Oreginum::Renderer::initialize(bool debug)
 	temporary_command_buffer = {device, temporary_command_pool};
 	command_pool = {device, device.get_graphics_queue_family_index()};
 	descriptor_pool = {device, {{vk::DescriptorType::eUniformBufferDynamic, 1}}};
+	depth_image = Vulkan::Image{device, swapchain.get_extent(), Vulkan::Image::DEPTH_FORMAT,
+		vk::ImageAspectFlagBits::eDepth, vk::ImageUsageFlagBits::eDepthStencilAttachment};
+	depth_image.transition(temporary_command_buffer, vk::ImageLayout::eUndefined,
+		vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::AccessFlags{},
+		vk::AccessFlagBits::eDepthStencilAttachmentRead |
+		vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
 	//Calculate uniform buffer padding
 	uint32_t minimum_offset{
@@ -101,7 +108,7 @@ void Oreginum::Renderer::record()
 
 	framebuffers.clear();
 	for(const auto& i : swapchain.get_images())
-		framebuffers.push_back({device, swapchain, render_pass, i});
+		framebuffers.push_back({device, swapchain, render_pass, i, depth_image});
 
 	command_buffers.clear();
 	device.get().resetCommandPool(command_pool.get(), vk::CommandPoolResetFlags{});
@@ -110,8 +117,11 @@ void Oreginum::Renderer::record()
 		command_buffers.push_back({device, command_pool});
 		command_buffers.back().begin();
 
-		std::array<vk::ClearValue, 1> clear_values{std::array<float, 4>{
-			BACKGROUND_COLOR.r, BACKGROUND_COLOR.g, BACKGROUND_COLOR.b, 1}};
+		std::array<vk::ClearValue, 2> clear_values{};
+		clear_values[0].setColor(std::array<float, 4>{
+			BACKGROUND_COLOR.r, BACKGROUND_COLOR.g, BACKGROUND_COLOR.b, 1});
+		clear_values[1].setDepthStencil({1, 0});
+
 		vk::RenderPassBeginInfo render_pass_begin_information;
 		render_pass_begin_information.setRenderPass(render_pass.get());
 		render_pass_begin_information.setFramebuffer(framebuffers[i].get());

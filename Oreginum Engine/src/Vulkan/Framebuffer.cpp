@@ -2,9 +2,10 @@
 #include "Framebuffer.hpp"
 
 Oreginum::Vulkan::Framebuffer::Framebuffer(const Device& device, const Swapchain& swapchain, 
-	const Render_Pass& render_pass, const Image& image) : device(&device)
+	const Render_Pass& render_pass, const Image& swapchain_image, const Image& depth_image)
+	: device(&device)
 {
-	std::array<vk::ImageView, 1> attachments{image.get_view()};
+	std::array<vk::ImageView, 2> attachments{swapchain_image.get_view(), depth_image.get_view()};
 
 	vk::FramebufferCreateInfo framebuffer_information{{}, render_pass.get(),
 		static_cast<uint32_t>(attachments.size()), attachments.data(),

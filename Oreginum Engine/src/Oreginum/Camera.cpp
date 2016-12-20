@@ -27,17 +27,17 @@ namespace
 	const float FOV{glm::radians(90.0f)};
 	constexpr float NEAR_CLIP{0.1f};
 	constexpr float FAR_CLIP{100};
-	constexpr float WALK_SPEED{1.0f};
-	constexpr float RUN_SPEED{3.0f};
+	constexpr float WALK_SPEED{10.0f};
+	constexpr float RUN_SPEED{19.0f};
 
-	bool freeze;
+	bool frozen;
 }
 
 void Oreginum::Camera::update()
 {
 	if(!Window::is_visible()) return;
 
-	if(Mouse::is_locked() && !::freeze)
+	if(Mouse::is_locked() && !::frozen)
 	{
 		glm::fvec2 cursor_delta{-glm::fvec2{Mouse::get_delta()}*SENSITIVITY};
 		if(glm::length(cursor_delta))
@@ -66,9 +66,11 @@ void Oreginum::Camera::update()
 	projection[1][1] *= -1;
 }
 
-void Oreginum::Camera::freeze(bool freeze){ ::freeze = freeze; }
+void Oreginum::Camera::set_frozen(bool frozen){ ::frozen = frozen; }
 
 void Oreginum::Camera::set_position(const glm::fvec3& position){ ::position = position; }
+
+bool Oreginum::Camera::get_frozen(){ return frozen;}
 
 const glm::fvec3& Oreginum::Camera::get_position(){ return position; }
 

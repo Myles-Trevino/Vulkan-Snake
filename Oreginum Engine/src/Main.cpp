@@ -19,6 +19,7 @@ namespace
 	enum class Direction { UP, DOWN, LEFT, RIGHT } direction, previous_direction;
 	constexpr int board_size{30}, tile_size{1}, tiles{board_size/tile_size};
 	float snake_timer, move_time;
+	bool paused;
 }
 
 void print_fps()
@@ -59,15 +60,20 @@ void set()
 
 int WinMain(HINSTANCE current_instance, HINSTANCE previous_instance, LPSTR arguments, int show)
 {
-	Oreginum::Core::initialize("Oreginum Engine Vulkan Test", {666, 666}, false, true);
-	Oreginum::Camera::freeze(true);
+	Oreginum::Core::initialize("Oreginum Engine Vulkan Test", {666, 666}, true, true, true);
+	Oreginum::Camera::set_frozen(true);
 	Oreginum::Camera::set_position(glm::fvec3{glm::fvec2{board_size/2.f}, -board_size/2.f});
 	fruit = {{}, glm::ivec3{tile_size}, fruit_color, false};
-	board = {{0, 0, 1}, glm::ivec3{board_size*tile_size}, board_color, false};
+	board = {{0, 0, 1}, glm::ivec3{glm::ivec2{board_size*tile_size}, 1}, board_color, false};
 	set();
 
 	while(Oreginum::Core::update())
 	{
+		//Pause
+		if(Oreginum::Keyboard::was_pressed(Oreginum::P))
+			paused = !paused, Oreginum::Camera::set_frozen(!Oreginum::Camera::get_frozen());
+		if(paused) continue;
+
 		//Controls
 		if(Oreginum::Keyboard::was_pressed(Oreginum::Key::W)
 			&& previous_direction != Direction::DOWN) direction = Direction::UP;

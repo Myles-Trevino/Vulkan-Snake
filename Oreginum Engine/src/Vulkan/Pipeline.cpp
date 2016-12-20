@@ -9,7 +9,6 @@ Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swap
 	//Vertex input
 	std::array<vk::VertexInputBindingDescription, 1> binding_descriptions;
 	binding_descriptions[0].setBinding(0);
-	//binding_descriptions[0].setStride(sizeof(float)*2);
 	binding_descriptions[0].setStride(sizeof(float)*3);
 	binding_descriptions[0].setInputRate(vk::VertexInputRate::eVertex);
 
@@ -87,6 +86,18 @@ Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swap
 	color_blend_state_information.setPAttachments(&color_blend_attachment_state);
 	color_blend_state_information.setBlendConstants({0, 0, 0, 0});
 
+	//Depth stencil
+	vk::PipelineDepthStencilStateCreateInfo depth_stencil_information;
+	depth_stencil_information.setDepthTestEnable(VK_TRUE);
+	depth_stencil_information.setDepthWriteEnable(VK_TRUE);
+	depth_stencil_information.setDepthCompareOp(vk::CompareOp::eLess);
+	depth_stencil_information.setDepthBoundsTestEnable(VK_FALSE);
+	depth_stencil_information.setMinDepthBounds(0);
+	depth_stencil_information.setMaxDepthBounds(1);
+	depth_stencil_information.setStencilTestEnable(VK_FALSE);
+	depth_stencil_information.setFront({});
+	depth_stencil_information.setBack({});
+
 	//Layout
 	vk::PipelineLayoutCreateInfo layout_information;
 	layout_information.setSetLayoutCount(1);
@@ -109,7 +120,7 @@ Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swap
 	pipeline_information.setPViewportState(&viewport_state_information);
 	pipeline_information.setPRasterizationState(&rasterization_state_information);
 	pipeline_information.setPMultisampleState(&multisample_state_information);
-	pipeline_information.setPDepthStencilState(nullptr);
+	pipeline_information.setPDepthStencilState(&depth_stencil_information);
 	pipeline_information.setPColorBlendState(&color_blend_state_information);
 	pipeline_information.setPDynamicState(nullptr);
 	pipeline_information.setLayout(pipeline_layout);

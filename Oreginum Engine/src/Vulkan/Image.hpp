@@ -11,6 +11,7 @@ namespace Oreginum::Vulkan
 		static constexpr vk::Format DEPTH_FORMAT{vk::Format::eD32Sfloat};
 		static const vk::FormatFeatureFlags DEPTH_FEATURES;
 
+		Image(){}
 		Image(const Device& device, const vk::Extent2D& extent, vk::Format format = FORMAT,
 			vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor,
 			vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eColorAttachment);
