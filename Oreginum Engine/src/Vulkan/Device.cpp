@@ -17,7 +17,9 @@ void Oreginum::Vulkan::Device::swap(Device *other)
 	std::swap(this->gpu_extensions, other->gpu_extensions);
 	std::swap(this->supported_gpu_extensions, other->supported_gpu_extensions);
 	std::swap(this->graphics_queue_family_index, other->graphics_queue_family_index);
+	std::swap(this->present_queue_family_index, other->present_queue_family_index);
 	std::swap(this->graphics_queue, other->graphics_queue);
+	std::swap(this->present_queue, other->present_queue);
 	std::swap(this->gpu_properties, other->gpu_properties);
 	std::swap(this->gpu_features, other->gpu_features);
 	std::swap(this->surface_capabilities, other->surface_capabilities);
@@ -43,19 +45,19 @@ void Oreginum::Vulkan::Device::get_gpu_information(const vk::PhysicalDevice& gpu
 	//Extensions
 	supported_gpu_extensions = gpu.enumerateDeviceExtensionProperties().value;
 
-	//Graphics queue
+	//Graphics and present queues
 	std::vector<vk::QueueFamilyProperties> queue_family_properties
 	{gpu.getQueueFamilyProperties()};
 
-	graphics_queue_family_index = UINT32_MAX;
+	graphics_queue_family_index = UINT32_MAX, present_queue_family_index = UINT32_MAX;
 	for(uint32_t i{}; i < queue_family_properties.size(); ++i)
 	{
 		if(queue_family_properties[i].queueFlags & vk::QueueFlagBits::eGraphics)
-		{
-			vk::Bool32 surface_supported;
-			vkGetPhysicalDeviceSurfaceSupportKHR(gpu, i, surface->get(), &surface_supported);
-			if(surface_supported){ graphics_queue_family_index = i; break; }
-		}
+			graphics_queue_family_index = i;
+		vk::Bool32 surface_supported;
+		vkGetPhysicalDeviceSurfaceSupportKHR(gpu, i, surface->get(), &surface_supported);
+		if(surface_supported) present_queue_family_index = i;
+		if(graphics_queue_family_index == present_queue_family_index) break;
 	}
 
 	//Swapchain
@@ -73,7 +75,7 @@ void Oreginum::Vulkan::Device::select_gpu()
 		get_gpu_information(g);
 
 		//GPU type
-		if(gpu_properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) rating += 1;
+		if(gpu_properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) rating += 2;
 
 		//Extensions
 		std::set<std::string> required_extensions(gpu_extensions.begin(), gpu_extensions.end());
@@ -82,7 +84,9 @@ void Oreginum::Vulkan::Device::select_gpu()
 		if(!required_extensions.empty()) continue;
 
 		//Graphics queue
-		if(graphics_queue_family_index == UINT32_MAX) continue;
+		if(graphics_queue_family_index == UINT32_MAX ||
+			present_queue_family_index == UINT32_MAX) continue;
+		if(graphics_queue_family_index == present_queue_family_index) rating += 1;
 
 		//Swapchain minimum image count
 		if((surface_capabilities.maxImageCount > 0) && (Swapchain::MINIMUM_IMAGE_COUNT >
@@ -122,14 +126,20 @@ void Oreginum::Vulkan::Device::select_gpu()
 void Oreginum::Vulkan::Device::create_device()
 {
 	static constexpr float QUEUE_PRIORITY{1};
-	vk::DeviceQueueCreateInfo device_queue_information
-	{{}, graphics_queue_family_index, 1, &QUEUE_PRIORITY};
+	std::vector<vk::DeviceQueueCreateInfo> device_queue_informations;
+	std::set<uint32_t> unique_queues{graphics_queue_family_index, present_queue_family_index};
+	for(uint32_t q : unique_queues)
+		device_queue_informations.push_back({{}, q, 1, &QUEUE_PRIORITY});
 
-	vk::DeviceCreateInfo device_information{{}, 1, &device_queue_information, 0, nullptr,
+	vk::DeviceCreateInfo device_information{{},
+		static_cast<uint32_t>(device_queue_informations.size()),
+		device_queue_informations.data(), 0, nullptr,
 		static_cast<uint32_t>(gpu_extensions.size()), gpu_extensions.data(), nullptr};
 
 	if(gpu.createDevice(&device_information, nullptr, device.get()) != vk::Result::eSuccess)
 		Oreginum::Core::error("Could not create a Vulkan device.");
 
 	graphics_queue = device->getQueue(graphics_queue_family_index, 0);
+	present_queue = device->getQueue(present_queue_family_index, 0);
+
 }

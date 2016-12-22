@@ -44,12 +44,6 @@ void Oreginum::Renderer::initialize(bool debug)
 	temporary_command_buffer = {device, temporary_command_pool};
 	command_pool = {device, device.get_graphics_queue_family_index()};
 	descriptor_pool = {device, {{vk::DescriptorType::eUniformBufferDynamic, 1}}};
-	depth_image = Vulkan::Image{device, swapchain.get_extent(), Vulkan::Image::DEPTH_FORMAT,
-		vk::ImageAspectFlagBits::eDepth, vk::ImageUsageFlagBits::eDepthStencilAttachment};
-	depth_image.transition(temporary_command_buffer, vk::ImageLayout::eUndefined,
-		vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::AccessFlags{},
-		vk::AccessFlagBits::eDepthStencilAttachmentRead |
-		vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
 	//Calculate uniform buffer padding
 	uint32_t minimum_offset{
@@ -96,6 +90,13 @@ void Oreginum::Renderer::record()
 		uniform_buffer = {device, temporary_command_buffer,
 			vk::BufferUsageFlagBits::eUniformBuffer, uniform_buffer_size};
 	}
+
+	depth_image = Vulkan::Image{ device, swapchain.get_extent(), Vulkan::Image::DEPTH_FORMAT,
+		vk::ImageAspectFlagBits::eDepth, vk::ImageUsageFlagBits::eDepthStencilAttachment };
+	depth_image.transition(temporary_command_buffer, vk::ImageLayout::eUndefined,
+		vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::AccessFlags{},
+		vk::AccessFlagBits::eDepthStencilAttachmentRead |
+		vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
 	device.get().resetDescriptorPool(descriptor_pool.get());
 	descriptor_set = {device, descriptor_pool, vk::DescriptorType::eUniformBufferDynamic,
@@ -208,7 +209,7 @@ void Oreginum::Renderer::render()
 	present_information.setPImageIndices(&image_index);
 	present_information.setPResults(nullptr);
 
-	result = device.get_graphics_queue().presentKHR(present_information);
+	result = device.get_present_queue().presentKHR(present_information);
 	if(result == vk::Result::eSuboptimalKHR || result == vk::Result::eErrorOutOfDateKHR)
 		reinitialize_swapchain(); else if(result != vk::Result::eSuccess)
 		Core::error("Could not submit Vulkan presentation queue.");

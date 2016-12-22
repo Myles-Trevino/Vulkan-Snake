@@ -1,4 +1,3 @@
-#include <iostream>
 #include "Oreginum/Core.hpp"
 #include "Oreginum/Renderer.hpp"
 #include "Oreginum/Cuboid.hpp"
@@ -6,34 +5,16 @@
 #include "Oreginum/Keyboard.hpp"
 #include "Oreginum/Camera.hpp"
 
-/*
-	Use seperate 2D shaders for rectangles.
-*/
-
 namespace
 {
 	Oreginum::Cuboid board, fruit;
 	std::vector<Oreginum::Cuboid> snake;
 	glm::fvec3 background_color{.1f, .1f, .1f}, board_color{.15f, .15f, .15f},
 		fruit_color{1.f, .1f, .3f}, snake_color{.3f, 1.f, .5f};
-	enum class Direction { UP, DOWN, LEFT, RIGHT } direction, previous_direction;
+	enum class Direction{UP, DOWN, LEFT, RIGHT} direction, previous_direction;
 	constexpr int board_size{30}, tile_size{1}, tiles{board_size/tile_size};
 	float snake_timer, move_time;
 	bool paused;
-}
-
-void print_fps()
-{
-	static double timer{};
-	static int fps{};
-
-	++fps;
-	timer += Oreginum::Core::get_delta();
-	if(timer > 1)
-	{
-		std::cout<<fps<<" : "<<Oreginum::Core::get_delta()<<'\n';
-		fps = 0, timer = 0;
-	}
 }
 
 void eat()
@@ -60,7 +41,7 @@ void set()
 
 int WinMain(HINSTANCE current_instance, HINSTANCE previous_instance, LPSTR arguments, int show)
 {
-	Oreginum::Core::initialize("Oreginum Engine Vulkan Test", {666, 666}, true, true, true);
+	Oreginum::Core::initialize("Oreginum Engine Vulkan Test", {666, 666});
 	Oreginum::Camera::set_frozen(true);
 	Oreginum::Camera::set_position(glm::fvec3{glm::fvec2{board_size/2.f}, -board_size/2.f});
 	fruit = {{}, glm::ivec3{tile_size}, fruit_color, false};
@@ -114,8 +95,6 @@ int WinMain(HINSTANCE current_instance, HINSTANCE previous_instance, LPSTR argum
 		glm::fvec3 head{snake.back().get_translation()};
 		if(head.x < 0 || head.x >= board_size || head.y < 0 || head.y >= board_size) set();
 		for(int i{}; i < snake.size()-1; ++i) if(head == snake[i].get_translation()) set();
-
-		print_fps();
 	}
 
 	Oreginum::Core::destroy();
