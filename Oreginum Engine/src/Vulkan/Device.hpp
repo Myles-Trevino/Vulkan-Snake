@@ -15,7 +15,7 @@ namespace Oreginum::Vulkan
 	public:
 		Device(){};
 		Device(const Instance& instance, const Surface& surface);
-		Device *Device::operator=(Device other){ swap(&other); return this; }
+		Device *operator=(Device other){ swap(&other); return this; }
 		~Device();
 
 		void update(){ get_gpu_swapchain_information(gpu); }

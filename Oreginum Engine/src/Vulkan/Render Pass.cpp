@@ -6,7 +6,7 @@ Oreginum::Vulkan::Render_Pass::Render_Pass(const Device& device) : device(&devic
 {
 	//Attachments
 	vk::AttachmentDescription color_attachment_description;
-	color_attachment_description.setFormat(Swapchain::FORMAT.format);
+	color_attachment_description.setFormat(Image::SWAPCHAIN_FORMAT);
 	color_attachment_description.setSamples(vk::SampleCountFlagBits::e1);
 	color_attachment_description.setLoadOp(vk::AttachmentLoadOp::eClear);
 	color_attachment_description.setStoreOp(vk::AttachmentStoreOp::eStore);
@@ -78,6 +78,6 @@ Oreginum::Vulkan::Render_Pass::~Render_Pass()
 
 void Oreginum::Vulkan::Render_Pass::swap(Render_Pass *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->render_pass, other->render_pass);
+	std::swap(device, other->device);
+	std::swap(render_pass, other->render_pass);
 }

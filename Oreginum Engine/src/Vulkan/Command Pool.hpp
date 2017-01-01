@@ -13,7 +13,7 @@ namespace Oreginum::Vulkan
 		Command_Pool(){}
 		Command_Pool(const Device& device, uint32_t queue_family_index,
 			vk::CommandPoolCreateFlags flags = {});
-		Command_Pool *Command_Pool::operator=(Command_Pool other){ swap(&other); return this; }
+		Command_Pool *operator=(Command_Pool other){ swap(&other); return this; }
 		~Command_Pool();
 
 		const vk::CommandPool& get() const { return *command_pool; }

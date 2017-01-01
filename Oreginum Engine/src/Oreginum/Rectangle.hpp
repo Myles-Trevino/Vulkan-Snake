@@ -19,22 +19,18 @@ namespace Oreginum
 			const glm::fvec3& color = {});
 
 		void update();
-		void draw(const Vulkan::Descriptor_Set& descriptor_set, const Vulkan::Pipeline& pipeline,
-			const Vulkan::Command_Buffer& command_buffer, uint32_t offset);
+		virtual void draw(const Vulkan::Descriptor_Set& descriptor_set,
+			const Vulkan::Command_Buffer& command_buffer, uint32_t descriptor_offset);
 		void translate(const glm::fvec2& translation){ this->translation += translation; }
 		void set_translation(const glm::fvec2& translation){ this->translation = translation; }
 		void set_color(const glm::fvec3 color){ uniforms.color = color; }
 		
+		const void* get_uniforms() const { return &uniforms; }
 		const glm::fvec2& get_translation() const { return translation; }
 		const glm::fvec3& get_color() const { return uniforms.color; }
-		const Uniforms& get_uniforms() const { return uniforms;  }
 
 	private:
-		static constexpr std::array<float, 12> VERTICES{
-			0, 0, 0,
-			0, 1, 0,
-			1, 1, 0,
-			1, 0, 0};
+		static constexpr std::array<float, 8> VERTICES{0, 0, 0, 1, 1, 1, 1, 0};
 		static constexpr std::array<uint16_t, 6> INDICES{0, 1, 2, 2, 3, 0};
 		static Vulkan::Buffer vertex_buffer, index_buffer;
 		glm::fvec2 scale, translation;

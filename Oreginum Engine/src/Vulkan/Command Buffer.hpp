@@ -14,14 +14,14 @@ namespace Oreginum::Vulkan
 		Command_Buffer(){}
 		Command_Buffer(const Device& device, const Command_Pool& command_pool,
 			vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary);
-		Command_Buffer *Command_Buffer::operator=(Command_Buffer other)
-		{ swap(&other); return this; }
+		Command_Buffer *operator=(Command_Buffer other){ swap(&other); return this; }
 		~Command_Buffer();
 
 		void begin(vk::CommandBufferUsageFlagBits flags =
 			vk::CommandBufferUsageFlagBits::eSimultaneousUse) const;
 		void end() const;
 		void submit() const;
+		void end_and_submit() const { end(), submit(); }
 
 		const vk::CommandBuffer& get() const { return *command_buffer; }
 

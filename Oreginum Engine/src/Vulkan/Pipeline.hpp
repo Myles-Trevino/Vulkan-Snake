@@ -17,8 +17,9 @@ namespace Oreginum::Vulkan
 		Pipeline(){}
 		Pipeline(const Device& device, const Swapchain& swapchain,
 			const Render_Pass& render_pass, const Shader& shader,
-			const Vulkan::Descriptor_Set& descriptor_set);
-		Pipeline *Pipeline::operator=(Pipeline other){ swap(&other); return this; };
+			const Vulkan::Descriptor_Set& descriptor_set, bool three_dimensional = false,
+			bool model = false, const Pipeline& base = {});
+		Pipeline *operator=(Pipeline other){ swap(&other); return this; };
 		~Pipeline();
 
 		const vk::Pipeline& get() const { return *pipeline; }

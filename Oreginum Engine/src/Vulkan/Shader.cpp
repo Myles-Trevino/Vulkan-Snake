@@ -20,9 +20,9 @@ Oreginum::Vulkan::Shader::~Shader()
 
 void Oreginum::Vulkan::Shader::swap(Shader *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->modules, other->modules);
-	std::swap(this->information, other->information);
+	std::swap(device, other->device);
+	std::swap(modules, other->modules);
+	std::swap(information, other->information);
 }
 
 vk::ShaderModule Oreginum::Vulkan::Shader::create_shader_module(const std::string& shader)

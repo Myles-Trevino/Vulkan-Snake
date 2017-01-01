@@ -4,19 +4,34 @@
 
 Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swapchain,
 	const Render_Pass& render_pass, const Shader& shader,
-	const Vulkan::Descriptor_Set& descriptor_set) : device(&device)
+	const Vulkan::Descriptor_Set& descriptor_set, bool three_dimensional,
+	bool model, const Pipeline& base) : device(&device)
 {
 	//Vertex input
 	std::array<vk::VertexInputBindingDescription, 1> binding_descriptions;
+	std::vector<vk::VertexInputAttributeDescription> attribute_descriptions(model ? 3 : 1);
+
 	binding_descriptions[0].setBinding(0);
-	binding_descriptions[0].setStride(sizeof(float)*3);
+	binding_descriptions[0].setStride(sizeof(float)*(three_dimensional ? model ? 8 : 3 : 2));
 	binding_descriptions[0].setInputRate(vk::VertexInputRate::eVertex);
 
-	std::array<vk::VertexInputAttributeDescription, 1> attribute_descriptions;
 	attribute_descriptions[0].setBinding(0);
 	attribute_descriptions[0].setLocation(0);
-	attribute_descriptions[0].setFormat(vk::Format::eR32G32B32Sfloat);
+	attribute_descriptions[0].setFormat(three_dimensional ?
+		vk::Format::eR32G32B32Sfloat : vk::Format::eR32G32Sfloat);
 	attribute_descriptions[0].setOffset(0);
+
+	if(model)
+	{
+		attribute_descriptions[1].setBinding(0);
+		attribute_descriptions[1].setLocation(1);
+		attribute_descriptions[1].setFormat(vk::Format::eR32G32Sfloat);
+		attribute_descriptions[1].setOffset(sizeof(float)*3);
+		attribute_descriptions[2].setBinding(0);
+		attribute_descriptions[2].setLocation(2);
+		attribute_descriptions[2].setFormat(vk::Format::eR32G32B32Sfloat);
+		attribute_descriptions[2].setOffset(sizeof(float)*5);
+	}
 
 	vk::PipelineVertexInputStateCreateInfo vertex_input_state_information;
 	vertex_input_state_information.setVertexBindingDescriptionCount(
@@ -55,7 +70,7 @@ Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swap
 	rasterization_state_information.setDepthClampEnable(VK_FALSE);
 	rasterization_state_information.setRasterizerDiscardEnable(VK_FALSE);
 	rasterization_state_information.setPolygonMode(vk::PolygonMode::eFill);
-	rasterization_state_information.setCullMode(vk::CullModeFlagBits::eNone);
+	rasterization_state_information.setCullMode(vk::CullModeFlagBits::eBack);
 	rasterization_state_information.setFrontFace(vk::FrontFace::eCounterClockwise);
 	rasterization_state_information.setDepthBiasEnable(VK_FALSE);
 	rasterization_state_information.setDepthBiasConstantFactor(0);
@@ -88,15 +103,18 @@ Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swap
 
 	//Depth stencil
 	vk::PipelineDepthStencilStateCreateInfo depth_stencil_information;
-	depth_stencil_information.setDepthTestEnable(VK_TRUE);
-	depth_stencil_information.setDepthWriteEnable(VK_TRUE);
-	depth_stencil_information.setDepthCompareOp(vk::CompareOp::eLess);
-	depth_stencil_information.setDepthBoundsTestEnable(VK_FALSE);
-	depth_stencil_information.setMinDepthBounds(0);
-	depth_stencil_information.setMaxDepthBounds(1);
-	depth_stencil_information.setStencilTestEnable(VK_FALSE);
-	depth_stencil_information.setFront({});
-	depth_stencil_information.setBack({});
+	if(three_dimensional)
+	{
+		depth_stencil_information.setDepthTestEnable(VK_TRUE);
+		depth_stencil_information.setDepthWriteEnable(VK_TRUE);
+		depth_stencil_information.setDepthCompareOp(vk::CompareOp::eLess);
+		depth_stencil_information.setDepthBoundsTestEnable(VK_FALSE);
+		depth_stencil_information.setMinDepthBounds(0);
+		depth_stencil_information.setMaxDepthBounds(1);
+		depth_stencil_information.setStencilTestEnable(VK_FALSE);
+		depth_stencil_information.setFront({});
+		depth_stencil_information.setBack({});
+	}
 
 	//Layout
 	vk::PipelineLayoutCreateInfo layout_information;
@@ -126,7 +144,7 @@ Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swap
 	pipeline_information.setLayout(pipeline_layout);
 	pipeline_information.setRenderPass(render_pass.get());
 	pipeline_information.setSubpass(0);
-	pipeline_information.setBasePipelineHandle(VK_NULL_HANDLE);
+	pipeline_information.setBasePipelineHandle(base.get());
 	pipeline_information.setBasePipelineIndex(-1);
 
 	if(device.get().createGraphicsPipelines(VK_NULL_HANDLE, 1,
@@ -137,15 +155,13 @@ Oreginum::Vulkan::Pipeline::Pipeline(const Device& device, const Swapchain& swap
 Oreginum::Vulkan::Pipeline::~Pipeline()
 {
 	if(!pipeline.unique() || !device) return;
-	device->get().waitIdle();
-
 	if(*pipeline) device->get().destroyPipeline(*pipeline);
 	if(pipeline_layout) device->get().destroyPipelineLayout(pipeline_layout);
 }
 
 void Oreginum::Vulkan::Pipeline::swap(Pipeline *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->pipeline_layout, other->pipeline_layout);
-	std::swap(this->pipeline, other->pipeline);
+	std::swap(device, other->device);
+	std::swap(pipeline_layout, other->pipeline_layout);
+	std::swap(pipeline, other->pipeline);
 }

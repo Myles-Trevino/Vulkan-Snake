@@ -8,8 +8,7 @@ namespace Oreginum::Vulkan
 	public:
 		Surface(){}
 		Surface(const Instance& instance);
-		Surface *Surface::operator=(Surface other)
-		{ swap(&other); return this; }
+		Surface *operator=(Surface other){ swap(&other); return this; }
 		~Surface();
 
 		vk::SurfaceKHR get() const { return *surface; }

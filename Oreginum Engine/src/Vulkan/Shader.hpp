@@ -13,11 +13,10 @@ namespace Oreginum::Vulkan
 		Shader(){}
 		Shader(const Device& device, const std::vector<std::pair<
 			std::string, vk::ShaderStageFlagBits>>& shaders);
-		Shader *Shader::operator=(Shader other){ swap(&other); return this; }
+		Shader *operator=(Shader other){ swap(&other); return this; }
 		~Shader();
 
-		const std::vector<vk::PipelineShaderStageCreateInfo>& get() const
-		{ return information; }
+		const std::vector<vk::PipelineShaderStageCreateInfo>& get() const { return information; }
 
 	private:
 		const Device *device;

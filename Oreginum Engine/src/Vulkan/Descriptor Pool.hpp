@@ -8,9 +8,8 @@ namespace Oreginum::Vulkan
 	public:
 		Descriptor_Pool(){}
 		Descriptor_Pool(const Device& device,
-			const std::vector<std::pair<vk::DescriptorType, uint32_t>>& sets);
-		Descriptor_Pool *Descriptor_Pool::operator=(Descriptor_Pool other)
-		{ swap(&other); return this; }
+			const std::vector<std::pair<vk::DescriptorType, uint32_t>>& sizes);
+		Descriptor_Pool *operator=(Descriptor_Pool other){ swap(&other); return this; }
 		~Descriptor_Pool();
 
 		const vk::DescriptorPool& get() const { return *descriptor_pool; }

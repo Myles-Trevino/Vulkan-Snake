@@ -11,7 +11,7 @@ namespace Oreginum::Vulkan
 	{
 	public:
 		Instance(bool debug = false);
-		Instance *Instance::operator=(Instance other){ swap(&other); return this; }
+		Instance *operator=(Instance other){ swap(&other); return this; }
 		~Instance();
 
 		const vk::Instance& get() const { return *instance; }

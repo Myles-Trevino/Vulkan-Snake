@@ -14,7 +14,7 @@ void Oreginum::Vulkan::Swapchain::initialize(const Instance& instance,
 	vk::SwapchainKHR old_swapchain{*swapchain};
 	vk::SwapchainCreateInfoKHR swapchain_information{{}, surface.get(), std::max(
 		MINIMUM_IMAGE_COUNT, device->get_surface_capabilities().minImageCount),
-		FORMAT.format, FORMAT.colorSpace, extent, 1,
+		Image::SWAPCHAIN_FORMAT, Image::SWAPCHAIN_COLOR_SPACE, extent, 1,
 		vk::ImageUsageFlagBits::eColorAttachment,
 		vk::SharingMode::eExclusive, 0, nullptr,
 		device->get_surface_capabilities().currentTransform,
@@ -37,7 +37,7 @@ void Oreginum::Vulkan::Swapchain::initialize(const Instance& instance,
 	//Create image views
 	images.clear();
 	std::vector<vk::Image> image_handles{device->get().getSwapchainImagesKHR(*swapchain).value};
-	for(auto i : image_handles) images.push_back({*device, i, FORMAT.format});
+	for(auto i : image_handles) images.push_back({*device, i, Image::SWAPCHAIN_FORMAT});
 }
 
 Oreginum::Vulkan::Swapchain::~Swapchain()
@@ -45,10 +45,10 @@ Oreginum::Vulkan::Swapchain::~Swapchain()
 
 void Oreginum::Vulkan::Swapchain::swap(Swapchain *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->surface, other->surface);
-	std::swap(this->instance, other->instance);
-	std::swap(this->extent, other->extent);
-	std::swap(this->swapchain, other->swapchain);
-	std::swap(this->images, other->images);
+	std::swap(device, other->device);
+	std::swap(surface, other->surface);
+	std::swap(instance, other->instance);
+	std::swap(extent, other->extent);
+	std::swap(swapchain, other->swapchain);
+	std::swap(images, other->images);
 }

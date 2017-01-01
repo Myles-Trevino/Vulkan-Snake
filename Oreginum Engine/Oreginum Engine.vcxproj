@@ -128,12 +128,15 @@
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Oreginum\Camera.cpp" />
     <ClCompile Include="src\Oreginum\Core.cpp" />
+    <ClCompile Include="src\Oreginum\Environment.cpp" />
     <ClCompile Include="src\Oreginum\Cuboid.cpp" />
     <ClCompile Include="src\Oreginum\Keyboard.cpp" />
     <ClCompile Include="src\Oreginum\Model.cpp" />
     <ClCompile Include="src\Oreginum\Mouse.cpp" />
     <ClCompile Include="src\Oreginum\Rectangle.cpp" />
     <ClCompile Include="src\Oreginum\Renderer.cpp" />
+    <ClCompile Include="src\Oreginum\Sprite.cpp" />
+    <ClCompile Include="src\Oreginum\Texture.cpp" />
     <ClCompile Include="src\Oreginum\Window.cpp" />
     <ClCompile Include="src\Vulkan\Buffer.cpp" />
     <ClCompile Include="src\Vulkan\Command Buffer.cpp" />
@@ -147,6 +150,7 @@
     <ClCompile Include="src\Vulkan\Instance.cpp" />
     <ClCompile Include="src\Vulkan\Pipeline.cpp" />
     <ClCompile Include="src\Vulkan\Render Pass.cpp" />
+    <ClCompile Include="src\Vulkan\Sampler.cpp" />
     <ClCompile Include="src\Vulkan\Semaphore.cpp" />
     <ClCompile Include="src\Vulkan\Shader.cpp" />
     <ClCompile Include="src\Vulkan\Surface.cpp" />
@@ -155,6 +159,7 @@
   <ItemGroup>
     <ClInclude Include="src\Oreginum\Camera.hpp" />
     <ClInclude Include="src\Oreginum\Core.hpp" />
+    <ClInclude Include="src\Oreginum\Environment.hpp" />
     <ClInclude Include="src\Oreginum\Cuboid.hpp" />
     <ClInclude Include="src\Oreginum\Keyboard.hpp" />
     <ClInclude Include="src\Oreginum\Model.hpp" />
@@ -162,6 +167,8 @@
     <ClInclude Include="src\Oreginum\Rectangle.hpp" />
     <ClInclude Include="src\Oreginum\Renderable.hpp" />
     <ClInclude Include="src\Oreginum\Renderer.hpp" />
+    <ClInclude Include="src\Oreginum\Sprite.hpp" />
+    <ClInclude Include="src\Oreginum\Texture.hpp" />
     <ClInclude Include="src\Oreginum\Window.hpp" />
     <ClInclude Include="src\Vulkan\Buffer.hpp" />
     <ClInclude Include="src\Vulkan\Command Buffer.hpp" />
@@ -175,10 +182,23 @@
     <ClInclude Include="src\Vulkan\Instance.hpp" />
     <ClInclude Include="src\Vulkan\Pipeline.hpp" />
     <ClInclude Include="src\Vulkan\Render Pass.hpp" />
+    <ClInclude Include="src\Vulkan\Sampler.hpp" />
     <ClInclude Include="src\Vulkan\Semaphore.hpp" />
     <ClInclude Include="src\Vulkan\Shader.hpp" />
     <ClInclude Include="src\Vulkan\Surface.hpp" />
     <ClInclude Include="src\Vulkan\Swapchain.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Shaders\Environment Fragment.frag" />
+    <None Include="Resources\Shaders\Environment Vertex.vert" />
+    <None Include="Resources\Shaders\Model Fragment.frag" />
+    <None Include="Resources\Shaders\Model Vertex.vert" />
+    <None Include="Resources\Shaders\Primitive 2D Fragment.frag" />
+    <None Include="Resources\Shaders\Primitive 2D Vertex.vert" />
+    <None Include="Resources\Shaders\Primitive 3D Fragment.frag" />
+    <None Include="Resources\Shaders\Primitive 3D Vertex.vert" />
+    <None Include="Resources\Shaders\Sprite Fragment.frag" />
+    <None Include="Resources\Shaders\Sprite Vertex.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

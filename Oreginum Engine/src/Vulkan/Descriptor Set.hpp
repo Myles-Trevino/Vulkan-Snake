@@ -1,6 +1,7 @@
 #pragma once
 #include "Device.hpp"
 #include "Descriptor Pool.hpp"
+#include "Sampler.hpp"
 #include "Buffer.hpp"
 
 namespace Oreginum::Vulkan
@@ -8,15 +9,20 @@ namespace Oreginum::Vulkan
 	class Descriptor_Set
 	{
 	public:
+		struct Write_Information
+		{
+			vk::DescriptorType type;
+			const vk::DescriptorBufferInfo *buffer;
+			const vk::DescriptorImageInfo *image;
+		};
+
 		Descriptor_Set(){}
 		Descriptor_Set(const Device& device, const Descriptor_Pool& pool,
-			vk::DescriptorType type, vk::ShaderStageFlags stage_flags,
-			const Buffer& buffer = {}, uint32_t range = 0);
-		Descriptor_Set *Descriptor_Set::operator=(Descriptor_Set other)
-		{ swap(&other); return this; }
+			const std::vector<std::pair<vk::DescriptorType, vk::ShaderStageFlags>>& bindings);
+		Descriptor_Set *operator=(Descriptor_Set other){ swap(&other); return this; }
 		~Descriptor_Set();
 
-		void write(const Buffer& buffer, uint32_t range);
+		void write(const std::vector<Write_Information>& write_descriptor_sets);
 
 		const vk::DescriptorSet& get() const { return descriptor_set; }
 		const vk::DescriptorSetLayout& get_layout() const { return *layout; }

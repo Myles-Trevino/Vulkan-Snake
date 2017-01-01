@@ -8,7 +8,7 @@ namespace Oreginum::Vulkan
 	public:
 		Fence(const Device& device, vk::FenceCreateFlags flags =
 			vk::FenceCreateFlagBits::eSignaled);
-		Fence *Fence::operator=(Fence other){ swap(&other); return this; }
+		Fence *operator=(Fence other){ swap(&other); return this; }
 		~Fence();
 
 		const vk::Fence& get() const { return *fence; }

@@ -19,9 +19,9 @@ Oreginum::Vulkan::Command_Buffer::~Command_Buffer()
 
 void Oreginum::Vulkan::Command_Buffer::swap(Command_Buffer *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->command_pool, other->command_pool);
-	std::swap(this->command_buffer, other->command_buffer);
+	std::swap(device, other->device);
+	std::swap(command_pool, other->command_pool);
+	std::swap(command_buffer, other->command_buffer);
 }
 
 void Oreginum::Vulkan::Command_Buffer::begin(vk::CommandBufferUsageFlagBits flags) const

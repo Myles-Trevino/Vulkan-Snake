@@ -12,21 +12,21 @@ Oreginum::Vulkan::Device::~Device(){ if(device.unique() && *device) device->dest
 
 void Oreginum::Vulkan::Device::swap(Device *other)
 {
-	std::swap(this->instance, other->instance);
-	std::swap(this->surface, other->surface);
-	std::swap(this->gpu_extensions, other->gpu_extensions);
-	std::swap(this->supported_gpu_extensions, other->supported_gpu_extensions);
-	std::swap(this->graphics_queue_family_index, other->graphics_queue_family_index);
-	std::swap(this->present_queue_family_index, other->present_queue_family_index);
-	std::swap(this->graphics_queue, other->graphics_queue);
-	std::swap(this->present_queue, other->present_queue);
-	std::swap(this->gpu_properties, other->gpu_properties);
-	std::swap(this->gpu_features, other->gpu_features);
-	std::swap(this->surface_capabilities, other->surface_capabilities);
-	std::swap(this->surface_formats, other->surface_formats);
-	std::swap(this->swapchain_present_modes, other->swapchain_present_modes);
-	std::swap(this->gpu, other->gpu);
-	std::swap(this->device, other->device);
+	std::swap(instance, other->instance);
+	std::swap(surface, other->surface);
+	std::swap(gpu_extensions, other->gpu_extensions);
+	std::swap(supported_gpu_extensions, other->supported_gpu_extensions);
+	std::swap(graphics_queue_family_index, other->graphics_queue_family_index);
+	std::swap(present_queue_family_index, other->present_queue_family_index);
+	std::swap(graphics_queue, other->graphics_queue);
+	std::swap(present_queue, other->present_queue);
+	std::swap(gpu_properties, other->gpu_properties);
+	std::swap(gpu_features, other->gpu_features);
+	std::swap(surface_capabilities, other->surface_capabilities);
+	std::swap(surface_formats, other->surface_formats);
+	std::swap(swapchain_present_modes, other->swapchain_present_modes);
+	std::swap(gpu, other->gpu);
+	std::swap(device, other->device);
 }
 
 void Oreginum::Vulkan::Device::get_gpu_swapchain_information(const vk::PhysicalDevice& gpu)
@@ -98,8 +98,8 @@ void Oreginum::Vulkan::Device::select_gpu()
 			(surface_formats[0].format == vk::Format::eUndefined)))
 		{
 			for(const auto& f : surface_formats)
-				if(f.format == Swapchain::FORMAT.format && f.colorSpace ==
-					Swapchain::FORMAT.colorSpace) swapchain_format_supported = true;
+				if(f.format == Image::SWAPCHAIN_FORMAT && f.colorSpace ==
+					Image::SWAPCHAIN_COLOR_SPACE) swapchain_format_supported = true;
 			if(!swapchain_format_supported) continue;
 		}
 
@@ -125,11 +125,11 @@ void Oreginum::Vulkan::Device::select_gpu()
 
 void Oreginum::Vulkan::Device::create_device()
 {
-	static constexpr float QUEUE_PRIORITY{1};
 	std::vector<vk::DeviceQueueCreateInfo> device_queue_informations;
+	static constexpr float QUEUE_PRIORITY{1};
 	std::set<uint32_t> unique_queues{graphics_queue_family_index, present_queue_family_index};
-	for(uint32_t q : unique_queues)
-		device_queue_informations.push_back({{}, q, 1, &QUEUE_PRIORITY});
+	for(uint32_t q : unique_queues) device_queue_informations.push_back(
+		vk::DeviceQueueCreateInfo{{}, q, 1, &QUEUE_PRIORITY});
 
 	vk::DeviceCreateInfo device_information{{},
 		static_cast<uint32_t>(device_queue_informations.size()),
@@ -141,5 +141,4 @@ void Oreginum::Vulkan::Device::create_device()
 
 	graphics_queue = device->getQueue(graphics_queue_family_index, 0);
 	present_queue = device->getQueue(present_queue_family_index, 0);
-
 }

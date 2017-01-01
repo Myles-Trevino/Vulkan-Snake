@@ -3,7 +3,6 @@
 #define GLM_FORECE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_RADIANS
 #include <GLM/gtx/transform.hpp>
-#include "../Vulkan/Pipeline.hpp"
 #include "Renderable.hpp"
 
 namespace Oreginum
@@ -16,14 +15,15 @@ namespace Oreginum
 			const glm::fvec3& color = {}, bool center = true);
 
 		void update();
-		void draw(const Vulkan::Descriptor_Set& descriptor_set, const Vulkan::Pipeline& pipeline,
-			const Vulkan::Command_Buffer& command_buffer, uint32_t offset);
+		void draw(const Vulkan::Descriptor_Set& descriptor_set,
+			const Vulkan::Command_Buffer& command_buffer, uint32_t descriptor_offset);
 		void translate(const glm::fvec3& translation){ this->translation += translation; }
 		void set_translation(const glm::fvec3& translation){ this->translation = translation; }
 		void rotate(float radians, const glm::fvec3& axis)
 		{ rotation *= glm::rotate(radians, axis); }
-
-		const Uniforms& get_uniforms() const { return uniforms; }
+		
+		const void* get_uniforms() const { return &uniforms; }
+		int get_type() const { return PRIMITIVE_3D; }
 		const glm::fvec3 get_translation() const { return translation; }
 
 	private:
@@ -34,7 +34,7 @@ namespace Oreginum
 		static Vulkan::Buffer vertex_buffer, index_buffer;
 		glm::fvec3 translation, scale;
 		glm::fmat4 rotation;
-		Uniforms uniforms;
 		bool center;
+		Uniforms uniforms;
 	};
 }

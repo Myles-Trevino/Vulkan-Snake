@@ -15,6 +15,6 @@ Oreginum::Vulkan::Surface::~Surface()
 
 void Oreginum::Vulkan::Surface::swap(Surface *other)
 {
-	std::swap(this->instance, other->instance);
-	std::swap(this->surface, other->surface);
+	std::swap(instance, other->instance);
+	std::swap(surface, other->surface);
 }

@@ -21,6 +21,6 @@ Oreginum::Vulkan::Framebuffer::~Framebuffer()
 
 void Oreginum::Vulkan::Framebuffer::swap(Framebuffer *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->framebuffer, other->framebuffer);
+	std::swap(device, other->device);
+	std::swap(framebuffer, other->framebuffer);
 }

@@ -8,7 +8,7 @@ namespace Oreginum::Vulkan
 	public:
 		Semaphore(){}
 		Semaphore(const Device& device);
-		Semaphore *Semaphore::operator=(Semaphore other){ swap(&other); return this; }
+		Semaphore *operator=(Semaphore other){ swap(&other); return this; }
 		~Semaphore();
 
 		const vk::Semaphore& get() const { return *semaphore; }

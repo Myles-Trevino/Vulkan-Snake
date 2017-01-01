@@ -13,7 +13,7 @@ namespace Oreginum::Vulkan
 		Framebuffer(const Device& device, const Swapchain& swapchain,
 			const Render_Pass& render_pass, const Image& swapchain_image, 
 			const Image& depth_image);
-		Framebuffer *Framebuffer::operator=(Framebuffer other)
+		Framebuffer *operator=(Framebuffer other)
 		{ swap(&other); return this; }
 		~Framebuffer();
 

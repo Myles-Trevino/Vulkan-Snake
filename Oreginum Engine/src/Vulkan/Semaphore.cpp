@@ -13,6 +13,6 @@ Oreginum::Vulkan::Semaphore::~Semaphore()
 
 void Oreginum::Vulkan::Semaphore::swap(Semaphore *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->semaphore, other->semaphore);
+	std::swap(device, other->device);
+	std::swap(semaphore, other->semaphore);
 }

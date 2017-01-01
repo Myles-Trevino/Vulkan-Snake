@@ -2,14 +2,14 @@
 #include "Descriptor Pool.hpp"
 
 Oreginum::Vulkan::Descriptor_Pool::Descriptor_Pool(const Device& device,
-	const std::vector<std::pair<vk::DescriptorType, uint32_t>>& sets) : device(&device)
+	const std::vector<std::pair<vk::DescriptorType, uint32_t>>& sizes) : device(&device)
 {
 	uint32_t descriptor_set_count{};
-	std::vector<vk::DescriptorPoolSize> pool_sizes{sets.size()};
-	for(uint32_t i{}; i < sets.size(); ++i)
+	std::vector<vk::DescriptorPoolSize> pool_sizes{sizes.size()};
+	for(uint32_t i{}; i < sizes.size(); ++i)
 	{
-		descriptor_set_count += sets[i].second;
-		pool_sizes[i] = {sets[i].first, sets[i].second};
+		descriptor_set_count += sizes[i].second;
+		pool_sizes[i] = {sizes[i].first, sizes[i].second};
 	}
 
 	vk::DescriptorPoolCreateInfo descriptor_pool_information{{}, descriptor_set_count,
@@ -28,6 +28,6 @@ Oreginum::Vulkan::Descriptor_Pool::~Descriptor_Pool()
 
 void Oreginum::Vulkan::Descriptor_Pool::swap(Descriptor_Pool *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->descriptor_pool, other->descriptor_pool);
+	std::swap(device, other->device);
+	std::swap(descriptor_pool, other->descriptor_pool);
 }

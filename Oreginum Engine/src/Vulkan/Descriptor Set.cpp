@@ -1,44 +1,50 @@
 #include "../Oreginum/Core.hpp"
 #include "Descriptor Set.hpp"
 
-Oreginum::Vulkan::Descriptor_Set::Descriptor_Set(const Device& device,
-	const Descriptor_Pool& pool, vk::DescriptorType type, vk::ShaderStageFlags stage_flags,
-	const Buffer& buffer, uint32_t range) : device(&device), type(type)
+Oreginum::Vulkan::Descriptor_Set::Descriptor_Set(const Device& device, const Descriptor_Pool& pool,
+	const std::vector<std::pair<vk::DescriptorType, vk::ShaderStageFlags>>& bindings)
+	: device(&device), type(type)
 {
 	//Create layout
-	vk::DescriptorSetLayoutBinding descriptor_set_layout_binding{0, type, 1, stage_flags};
+	std::vector<vk::DescriptorSetLayoutBinding> descriptor_set_layout_bindings;
+	for(uint32_t i{}; i < bindings.size(); ++i)
+		descriptor_set_layout_bindings.push_back({i, bindings[i].first, 1, bindings[i].second});
+
 	vk::DescriptorSetLayoutCreateInfo descriptor_set_layout_information
-	{{}, 1, &descriptor_set_layout_binding};
+	{{}, static_cast<uint32_t>(descriptor_set_layout_bindings.size()),
+		descriptor_set_layout_bindings.data()};
 	if(device.get().createDescriptorSetLayout(&descriptor_set_layout_information,
 		nullptr, layout.get()) != vk::Result::eSuccess)
 		Oreginum::Core::error("Could not create a Vulkan descriptor set layout.");
 
 	//Allocate set
-	vk::DescriptorSetAllocateInfo descriptor_set_allocate_information
-	{pool.get(), 1, layout.get()};
-	if(device.get().allocateDescriptorSets(&descriptor_set_allocate_information,
-		&descriptor_set) != vk::Result::eSuccess)
-		Oreginum::Core::error("Could not allocate a Vulkan descriptor set.");
-
-	//Write
-	if(buffer.get()) write(buffer, range);
+	vk::DescriptorSetAllocateInfo descriptor_set_allocate_information{pool.get(), 1, layout.get()};
+	if(device.get().allocateDescriptorSets(&descriptor_set_allocate_information, &descriptor_set) !=
+		vk::Result::eSuccess) Oreginum::Core::error("Could not allocate a Vulkan descriptor set.");
 }
 
 Oreginum::Vulkan::Descriptor_Set::~Descriptor_Set()
 { if(layout.unique() && *layout) device->get().destroyDescriptorSetLayout(*layout); }
 
-void Oreginum::Vulkan::Descriptor_Set::write(const Buffer& buffer, uint32_t range)
+void Oreginum::Vulkan::Descriptor_Set::write(
+	const std::vector<Write_Information>& write_informations)
 {
-	vk::DescriptorBufferInfo descriptor_buffer_information{buffer.get(), 0, range};
-	vk::WriteDescriptorSet write_descriptor_set{descriptor_set, 0, 0,
-		1, type, nullptr, &descriptor_buffer_information, nullptr};
-	device->get().updateDescriptorSets(write_descriptor_set, {});
+	std::vector<vk::WriteDescriptorSet> write_descriptor_sets;
+
+	for(uint32_t i{}; i < write_informations.size(); ++i)
+	{
+		write_descriptor_sets.push_back({descriptor_set, i, 0, 1,
+			write_informations[i].type, write_informations[i].image,
+			write_informations[i].buffer});
+	}
+	
+	device->get().updateDescriptorSets(write_descriptor_sets, {});
 }
 
 void Oreginum::Vulkan::Descriptor_Set::swap(Descriptor_Set *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->type, other->type);
-	std::swap(this->descriptor_set, other->descriptor_set);
-	std::swap(this->layout, other->layout);
+	std::swap(device, other->device);
+	std::swap(type, other->type);
+	std::swap(descriptor_set, other->descriptor_set);
+	std::swap(layout, other->layout);
 }

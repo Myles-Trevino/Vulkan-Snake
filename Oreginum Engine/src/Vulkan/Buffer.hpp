@@ -14,7 +14,7 @@ namespace Oreginum::Vulkan
 		Buffer(){}
 		Buffer(const Device& device, const Command_Buffer& temporary_command_buffer,
 			vk::BufferUsageFlags usage, size_t size, const void *data = nullptr);
-		Buffer *Buffer::operator=(Buffer other){ swap(&other); return this; }
+		Buffer *operator=(Buffer other){ swap(&other); return this; }
 		~Buffer();
 
 		static uint32_t find_memory(const Device& device, uint32_t type,

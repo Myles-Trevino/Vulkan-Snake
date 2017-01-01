@@ -8,7 +8,7 @@ namespace Oreginum::Vulkan
 	public:
 		Render_Pass(){}
 		Render_Pass(const Device& device);
-		Render_Pass *Render_Pass::operator=(Render_Pass render_pass)
+		Render_Pass *operator=(Render_Pass render_pass)
 		{ swap(&render_pass); return this; }
 		~Render_Pass();
 

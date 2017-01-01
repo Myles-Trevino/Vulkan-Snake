@@ -1,9 +1,11 @@
 #include "../Vulkan/Pipeline.hpp"
 #include "../Vulkan/Framebuffer.hpp"
 #include "../Vulkan/Semaphore.hpp"
+#include "../Vulkan/Sampler.hpp"
 #include "Core.hpp"
 #include "Window.hpp"
 #include "Renderer.hpp"
+#include "Texture.hpp"
 
 namespace
 {
@@ -12,11 +14,13 @@ namespace
 	Oreginum::Vulkan::Device device;
 	Oreginum::Vulkan::Swapchain swapchain;
 	Oreginum::Vulkan::Render_Pass render_pass;
-	Oreginum::Vulkan::Shader shader;
+	Oreginum::Vulkan::Shader primitive_2d_shader, sprite_shader,
+		primitive_3d_shader, model_shader, environment_shader;
 	Oreginum::Vulkan::Descriptor_Pool descriptor_pool;
-	Oreginum::Vulkan::Descriptor_Set descriptor_set;
+	Oreginum::Vulkan::Descriptor_Set untextured_descriptor_set, textured_descriptor_set;
 	Oreginum::Vulkan::Buffer uniform_buffer;
-	Oreginum::Vulkan::Pipeline pipeline;
+	Oreginum::Vulkan::Pipeline primitive_2d_pipeline, sprite_pipeline,
+		primitive_3d_pipeline, model_pipeline, environment_pipeline;
 	std::vector<Oreginum::Vulkan::Framebuffer> framebuffers;
 	Oreginum::Vulkan::Image depth_image;
 	Oreginum::Vulkan::Command_Pool command_pool, temporary_command_pool;
@@ -26,7 +30,7 @@ namespace
 
 	const glm::fvec3 BACKGROUND_COLOR{.1f, .1f, .1f};
 	std::vector<Oreginum::Renderable *> renderables;
-	uint32_t padded_uniform_size, uniform_buffer_size;
+	uint32_t uniform_size, padded_uniform_size, uniform_buffer_size;
 
 	bool rerecord{true};
 }
@@ -43,74 +47,108 @@ void Oreginum::Renderer::initialize(bool debug)
 		vk::CommandPoolCreateFlagBits::eResetCommandBuffer};
 	temporary_command_buffer = {device, temporary_command_pool};
 	command_pool = {device, device.get_graphics_queue_family_index()};
-	descriptor_pool = {device, {{vk::DescriptorType::eUniformBufferDynamic, 1}}};
 
 	//Calculate uniform buffer padding
 	uint32_t minimum_offset{
 		static_cast<uint32_t>(device.get_properties().limits.minUniformBufferOffsetAlignment)};
-	uint32_t uniform_size{static_cast<uint32_t>(sizeof(Renderable::Uniforms))};
+	uniform_size = static_cast<uint32_t>(sizeof(Renderable::Model_Uniforms));
 	uint32_t offset_difference{uniform_size%minimum_offset};
-	if(offset_difference) padded_uniform_size = uniform_size+(minimum_offset-offset_difference);
+	padded_uniform_size = uniform_size;
+	if(offset_difference) padded_uniform_size += minimum_offset-offset_difference;
 }
 
 void Oreginum::Renderer::add(Renderable *renderable)
-{
-	renderables.push_back(renderable);
-	rerecord = true;
-}
+{ renderables.push_back(renderable), rerecord = true; }
 
 void Oreginum::Renderer::add(const std::vector<Renderable *>& renderables)
 {
-	for(Renderable * r : renderables) ::renderables.push_back(r);
-	rerecord = true;
+	for(Renderable *r : renderables) ::renderables.push_back(r); rerecord = true;
 }
 
 void Oreginum::Renderer::remove(uint32_t index)
-{
-	renderables.erase(renderables.begin()+index);
-	rerecord = true;
-}
+{ renderables.erase(renderables.begin()+index), rerecord = true; }
 
-void Oreginum::Renderer::clear()
-{
-	renderables.clear();
-	rerecord = true;
-}
+void Oreginum::Renderer::clear(){ renderables.clear(), rerecord = true; }
 
 void Oreginum::Renderer::record()
 {
 	rerecord = false;
 	device.get().waitIdle();
 
+	//Uniform buffer
 	if(!renderables.empty())
 	{
-		uniform_buffer_size = static_cast<uint32_t>(renderables.size()-1)*
-			padded_uniform_size+sizeof(Renderable::Uniforms);
+		uniform_buffer_size = static_cast<uint32_t>(renderables.size())*padded_uniform_size;
 		device.get().resetCommandPool(temporary_command_pool.get(), vk::CommandPoolResetFlags{});
 		uniform_buffer = {device, temporary_command_buffer,
 			vk::BufferUsageFlagBits::eUniformBuffer, uniform_buffer_size};
 	}
 
-	depth_image = Vulkan::Image{ device, swapchain.get_extent(), Vulkan::Image::DEPTH_FORMAT,
-		vk::ImageAspectFlagBits::eDepth, vk::ImageUsageFlagBits::eDepthStencilAttachment };
+	//Depth image
+	depth_image = Vulkan::Image{device, swapchain.get_extent(),
+		vk::ImageUsageFlagBits::eDepthStencilAttachment, Vulkan::Image::DEPTH_FORMAT,
+		vk::ImageAspectFlagBits::eDepth};
 	depth_image.transition(temporary_command_buffer, vk::ImageLayout::eUndefined,
 		vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::AccessFlags{},
 		vk::AccessFlagBits::eDepthStencilAttachmentRead |
 		vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
-	device.get().resetDescriptorPool(descriptor_pool.get());
-	descriptor_set = {device, descriptor_pool, vk::DescriptorType::eUniformBufferDynamic,
-		vk::ShaderStageFlagBits::eVertex, uniform_buffer, sizeof(Renderable::Uniforms)};
+	//Descriptors
+	uint32_t textured_renderables{};
+	for(Renderable *r : renderables)
+		if(r->get_type() == Renderable::SPRITE || r->get_type() == Renderable::MODEL
+			|| r->get_type() == Renderable::ENVIRONMENT)
+			textured_renderables += r->get_meshes();
+
+	descriptor_pool = {device, {{vk::DescriptorType::eUniformBufferDynamic, textured_renderables+2},
+		{vk::DescriptorType::eCombinedImageSampler, textured_renderables+1}}};
+
+	untextured_descriptor_set = {device, descriptor_pool,
+		{{vk::DescriptorType::eUniformBufferDynamic, vk::ShaderStageFlagBits::eVertex}}};
+	textured_descriptor_set = {device, descriptor_pool,
+		{{vk::DescriptorType::eUniformBufferDynamic, vk::ShaderStageFlagBits::eVertex},
+		{vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment}}};
+
+	for(Renderable *r : renderables) r->initialize_descriptor();
+	if(!renderables.empty())
+	{
+		vk::DescriptorBufferInfo buffer_information{uniform_buffer.get(), 0, padded_uniform_size};
+		untextured_descriptor_set.write({{vk::DescriptorType::eUniformBufferDynamic,
+			&buffer_information, nullptr}});
+	}
+
+	//Render pass
 	render_pass = {device};
 
-	shader = {device, {{"3D Vertex", vk::ShaderStageFlagBits::eVertex},
-		{"3D Fragment", vk::ShaderStageFlagBits::eFragment}}};
-	pipeline = {device, swapchain, render_pass, shader, descriptor_set};
+	//Pipelines
+	primitive_2d_shader = {device, {{"Primitive 2D Vertex", vk::ShaderStageFlagBits::eVertex},
+		{"Primitive 2D Fragment", vk::ShaderStageFlagBits::eFragment}}};
+	sprite_shader = {device, {{"Sprite Vertex", vk::ShaderStageFlagBits::eVertex},
+		{"Sprite Fragment", vk::ShaderStageFlagBits::eFragment}}};
+	primitive_3d_shader = {device, {{"Primitive 3D Vertex", vk::ShaderStageFlagBits::eVertex},
+		{"Primitive 3D Fragment", vk::ShaderStageFlagBits::eFragment}}};
+	model_shader = {device, {{"Model Vertex", vk::ShaderStageFlagBits::eVertex},
+		{"Model Fragment", vk::ShaderStageFlagBits::eFragment}}};
+	environment_shader = {device, {{"Environment Vertex", vk::ShaderStageFlagBits::eVertex},
+		{"Environment Fragment", vk::ShaderStageFlagBits::eFragment}}};
 
+	primitive_2d_pipeline = {device, swapchain, render_pass,
+		primitive_2d_shader, untextured_descriptor_set};
+	sprite_pipeline = {device, swapchain, render_pass, sprite_shader,
+		textured_descriptor_set, false, false, primitive_2d_pipeline};
+	primitive_3d_pipeline = {device, swapchain, render_pass, primitive_3d_shader,
+		untextured_descriptor_set, true, false, primitive_2d_pipeline};
+	model_pipeline = {device, swapchain, render_pass, model_shader,
+		textured_descriptor_set, true, true, primitive_3d_pipeline};
+	environment_pipeline = {device, swapchain, render_pass, environment_shader,
+		textured_descriptor_set, false, false, sprite_pipeline};
+
+	//Framebuffers
 	framebuffers.clear();
 	for(const auto& i : swapchain.get_images())
 		framebuffers.push_back({device, swapchain, render_pass, i, depth_image});
 
+	//Command buffers
 	command_buffers.clear();
 	device.get().resetCommandPool(command_pool.get(), vk::CommandPoolResetFlags{});
 	for(int i{}; i < framebuffers.size(); ++i)
@@ -133,10 +171,16 @@ void Oreginum::Renderer::record()
 
 		command_buffers.back().get().beginRenderPass(
 			render_pass_begin_information, vk::SubpassContents::eInline);
-		command_buffers.back().get().bindPipeline(
-			vk::PipelineBindPoint::eGraphics, pipeline.get());
-		for(int j{}; j < renderables.size(); ++j) renderables[j]->draw(descriptor_set,
-			pipeline, command_buffers.back(), j*padded_uniform_size);
+
+		for(int j{}; j < renderables.size(); ++j)
+			if(renderables[j]->get_type() == Renderable::SPRITE ||
+				renderables[j]->get_type() == Renderable::MODEL ||
+				renderables[j]->get_type() == Renderable::ENVIRONMENT)
+				renderables[j]->draw(command_buffers.back(), j*padded_uniform_size);
+			else 
+				renderables[j]->draw(untextured_descriptor_set,
+					command_buffers.back(), j*padded_uniform_size);
+
 		command_buffers.back().get().endRenderPass();
 
 		command_buffers.back().end();
@@ -161,8 +205,8 @@ void Oreginum::Renderer::render()
 		for(int i{}; i < renderables.size(); ++i)
 		{
 			renderables[i]->update();
-			std::memcpy((void *)((char *)buffer+i*padded_uniform_size),
-				&renderables[i]->get_uniforms(), sizeof(Renderable::Uniforms));
+			std::memcpy((char *)buffer+i*padded_uniform_size,
+				renderables[i]->get_uniforms(), renderables[i]->get_uniforms_size());
 		}
 		uniform_buffer.write(buffer, uniform_buffer_size);
 		std::free(buffer);
@@ -219,3 +263,26 @@ const Oreginum::Vulkan::Device& Oreginum::Renderer::get_device(){ return device;
 
 const Oreginum::Vulkan::Command_Buffer& Oreginum::Renderer::get_temporary_command_buffer()
 { return temporary_command_buffer; }
+
+const Oreginum::Vulkan::Descriptor_Pool& Oreginum::Renderer::get_descriptor_pool()
+{ return descriptor_pool; }
+
+const Oreginum::Vulkan::Buffer& Oreginum::Renderer::get_uniform_buffer()
+{ return uniform_buffer; }
+
+uint32_t Oreginum::Renderer::get_padded_uniform_size(){ return padded_uniform_size; }
+
+const Oreginum::Vulkan::Pipeline& Oreginum::Renderer::get_primitive_2d_pipeline()
+{ return primitive_2d_pipeline; }
+
+const Oreginum::Vulkan::Pipeline& Oreginum::Renderer::get_sprite_pipeline()
+{ return sprite_pipeline; }
+
+const Oreginum::Vulkan::Pipeline& Oreginum::Renderer::get_primitive_3d_pipeline()
+{ return primitive_3d_pipeline; }
+
+const Oreginum::Vulkan::Pipeline& Oreginum::Renderer::get_model_pipeline()
+{ return model_pipeline; }
+
+const Oreginum::Vulkan::Pipeline& Oreginum::Renderer::get_environment_pipeline()
+{ return environment_pipeline; }

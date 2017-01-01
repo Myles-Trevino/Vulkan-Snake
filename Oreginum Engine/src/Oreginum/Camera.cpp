@@ -23,12 +23,12 @@ namespace
 	glm::fmat4 view;
 	glm::fmat4 projection;
 
-	constexpr float SENSITIVITY{0.003f};
-	const float FOV{glm::radians(90.0f)};
-	constexpr float NEAR_CLIP{0.1f};
+	constexpr float SENSITIVITY{.003f};
+	const float FOV{glm::radians(90.f)};
+	constexpr float NEAR_CLIP{.1f};
 	constexpr float FAR_CLIP{100};
-	constexpr float WALK_SPEED{10.0f};
-	constexpr float RUN_SPEED{19.0f};
+	constexpr float WALK_SPEED{5.f};
+	constexpr float RUN_SPEED{10.f};
 
 	bool frozen;
 }

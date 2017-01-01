@@ -14,6 +14,6 @@ Oreginum::Vulkan::Command_Pool::~Command_Pool()
 
 void Oreginum::Vulkan::Command_Pool::swap(Command_Pool *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->command_pool, other->command_pool);
+	std::swap(device, other->device);
+	std::swap(command_pool, other->command_pool);
 }

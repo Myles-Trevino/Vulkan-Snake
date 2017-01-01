@@ -11,6 +11,9 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{0e4c8410-94be-4120-978f-1e8ae7d0af8a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Vulkan\Buffer.cpp">
@@ -88,7 +91,19 @@
     <ClCompile Include="src\Oreginum\Renderer.cpp">
       <Filter>Source\Oreginum</Filter>
     </ClCompile>
+    <ClCompile Include="src\Oreginum\Texture.cpp">
+      <Filter>Source\Oreginum</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\Sampler.cpp">
+      <Filter>Source\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Oreginum\Sprite.cpp">
+      <Filter>Source\Oreginum</Filter>
+    </ClCompile>
     <ClCompile Include="src\Oreginum\Cuboid.cpp">
+      <Filter>Source\Oreginum</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Oreginum\Environment.cpp">
       <Filter>Source\Oreginum</Filter>
     </ClCompile>
   </ItemGroup>
@@ -165,11 +180,55 @@
     <ClInclude Include="src\Oreginum\Renderer.hpp">
       <Filter>Source\Oreginum</Filter>
     </ClInclude>
-    <ClInclude Include="src\Oreginum\Cuboid.hpp">
-      <Filter>Source\Oreginum</Filter>
-    </ClInclude>
     <ClInclude Include="src\Oreginum\Renderable.hpp">
       <Filter>Source\Oreginum</Filter>
     </ClInclude>
+    <ClInclude Include="src\Oreginum\Texture.hpp">
+      <Filter>Source\Oreginum</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\Sampler.hpp">
+      <Filter>Source\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Oreginum\Sprite.hpp">
+      <Filter>Source\Oreginum</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Oreginum\Cuboid.hpp">
+      <Filter>Source\Oreginum</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Oreginum\Environment.hpp">
+      <Filter>Source\Oreginum</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Shaders\Model Fragment.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Model Vertex.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Primitive 2D Fragment.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Primitive 2D Vertex.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Primitive 3D Fragment.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Primitive 3D Vertex.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Sprite Fragment.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Sprite Vertex.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Environment Vertex.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Environment Fragment.frag">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

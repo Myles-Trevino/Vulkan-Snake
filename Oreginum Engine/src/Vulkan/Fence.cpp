@@ -14,6 +14,6 @@ Oreginum::Vulkan::Fence::~Fence()
 
 void Oreginum::Vulkan::Fence::swap(Fence *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->fence, other->fence);
+	std::swap(device, other->device);
+	std::swap(fence, other->fence);
 }

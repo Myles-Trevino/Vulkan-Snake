@@ -28,13 +28,13 @@ Oreginum::Vulkan::Buffer::~Buffer()
 
 void Oreginum::Vulkan::Buffer::swap(Buffer *other)
 {
-	std::swap(this->device, other->device);
-	std::swap(this->temporary_command_buffer, other->temporary_command_buffer);
-	std::swap(this->size, other->size);
-	std::swap(this->buffer, other->buffer);
-	std::swap(this->buffer_memory, other->buffer_memory);
-	std::swap(this->stage, other->stage);
-	std::swap(this->stage_memory, other->stage_memory);
+	std::swap(device, other->device);
+	std::swap(temporary_command_buffer, other->temporary_command_buffer);
+	std::swap(size, other->size);
+	std::swap(buffer, other->buffer);
+	std::swap(buffer_memory, other->buffer_memory);
+	std::swap(stage, other->stage);
+	std::swap(stage_memory, other->stage_memory);
 }
 
 void Oreginum::Vulkan::Buffer::create_buffer(vk::Buffer *buffer, vk::DeviceMemory *memory,
@@ -74,13 +74,12 @@ void Oreginum::Vulkan::Buffer::write(const void *data, size_t size, size_t offse
 	this->size = size;
 	auto result{device->get().mapMemory(stage_memory, offset, size)};
 	if(result.result != vk::Result::eSuccess)
-		Oreginum::Core::error("Could not map Vulkan staging buffer memory.");
+		Oreginum::Core::error("Could not map Vulkan buffer stage memory.");
 	std::memcpy(result.value, data, size);
 	device->get().unmapMemory(stage_memory);
 
 	//Copy data from stage buffer to device buffer
 	temporary_command_buffer->begin(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 	temporary_command_buffer->get().copyBuffer(stage, *buffer, {{offset, offset, size}});
-	temporary_command_buffer->end();
-	temporary_command_buffer->submit();
+	temporary_command_buffer->end_and_submit();
 }
